@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron';
 
 /**
- * @typedef {import('./IpcRequestManager.mjs').SendData} SendData
+ * @typedef {import('../preload/IpcRequestManager.mjs').SendData} SendData
  */
 
 /**
- * @typedef {import('./IpcRequestManager.mjs').SendResult} SendResult
+ * @typedef {import('../preload/IpcRequestManager.mjs').SendResult} SendResult
  */
 
 class TinyIpcResponder {
