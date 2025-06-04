@@ -1,3 +1,16 @@
+# Remove original repository data
+src
+test
+temp
+.babelrc
+.prettierignore
+.prettierrc.json
+babel.config.json
+rollup.config.mjs
+webpack.config.mjs
+tsconfig.json
+*.map
+
 # Logs
 logs
 *.log
@@ -6,7 +19,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
-temp
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -42,6 +54,8 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
+
++!dist/node_modules/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
@@ -90,7 +104,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
