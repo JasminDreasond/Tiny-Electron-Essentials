@@ -17,8 +17,8 @@ class TinyIpcResponder {
   #handlers = new Map();
 
   /**
-   * Registra um listener de canal que pode usar requestId para responder
-   * @param {string} channel - Nome do canal para escutar
+   * Register a channel listener that can use requestId to respond
+   * @param {string} channel - Channel name for listening
    * @param {(payload: any, respond: (response: any, error?: any) => void, event: Electron.IpcMainEvent) => void} handler
    */
   on(channel, handler) {
@@ -48,7 +48,7 @@ class TinyIpcResponder {
   }
 
   /**
-   * Cancela o listener de um canal
+   * Cancel the listener of a channel
    * @param {string} channel
    */
   off(channel) {
@@ -60,7 +60,7 @@ class TinyIpcResponder {
   }
 
   /**
-   * Cancela todos os listeners registrados por essa instância
+   * Cancel all registered listeners by this instance
    */
   clear() {
     for (const [channel, handler] of this.#handlers) {

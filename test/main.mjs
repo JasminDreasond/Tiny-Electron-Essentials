@@ -22,7 +22,7 @@ function createWindow() {
 
   responder.on('get-user-data', async (payload, respond) => {
     try {
-      const user = { result: 'pudding', ...payload };
+      const user = { result: 'pudding', time: Date.now(), ...payload };
       respond(user);
     } catch (err) {
       respond(null, err.message);
