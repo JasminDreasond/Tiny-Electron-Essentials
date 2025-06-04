@@ -1,3 +1,18 @@
+# Ignore only root-level folders
+/global/
+/main/
+/preload/
+
+# But do not ignore them if inside src/
+!src/global/
+/src/global/**
+
+!src/main/
+/src/main/**
+
+!src/preload/
+/src/preload/**
+
 # Remove original repository data
 src
 test
@@ -10,6 +25,7 @@ rollup.config.mjs
 webpack.config.mjs
 tsconfig.json
 *.map
+build
 
 # Logs
 logs

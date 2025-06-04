@@ -9,7 +9,7 @@
     "fix:prettier:rollup.config": "prettier --write ./rollup.config.mjs",
     "auto-build": "npm run build",
     "build": "npm run build:js",
-    "build:js": "tsc -p tsconfig.json && rollup -c",
+    "build:js": "tsc -p tsconfig.json && rollup -c && node ./build/index.mjs",
     "build-clean": "npm run clean && npm run build",
     "build-dist": "npm run build",
     "clean": "rm -rf dist",

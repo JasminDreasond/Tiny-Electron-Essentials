@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const { TinyIpcRequestManager } = require('../dist/preload/index.cjs');
+const { TinyIpcRequestManager } = require('../preload/index.cjs');
 
 const manager = new TinyIpcRequestManager();
 

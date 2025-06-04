@@ -2,7 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { TinyIpcResponder } from '../dist/main/index.mjs';
+import { TinyIpcResponder } from '../main/index.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
