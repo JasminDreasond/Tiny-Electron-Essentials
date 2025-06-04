@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "test": "electronmon ./test/main.mjs",
-    "fix:prettier": "npm run fix:prettier:src && npm run fix:prettier:test && npm run fix:prettier:rollup.config && npm run fix:prettier:webpack.config",
+    "fix:prettier": "npm run fix:prettier:src && npm run fix:prettier:test && npm run fix:prettier:rollup.config",
     "fix:prettier:src": "prettier --write ./src/*",
     "fix:prettier:test": "prettier --write ./test/*",
     "fix:prettier:rollup.config": "prettier --write ./rollup.config.mjs",
-    "fix:prettier:webpack.config": "prettier --write ./webpack.config.mjs",
     "auto-build": "npm run build",
     "build": "npm run build:js",
     "build:js": "tsc -p tsconfig.json && rollup -c",
