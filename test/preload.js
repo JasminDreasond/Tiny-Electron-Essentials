@@ -4,15 +4,6 @@ const { TinyIpcRequestManager } = require('../dist/preload/index.cjs');
 const manager = new TinyIpcRequestManager();
 
 contextBridge.exposeInMainWorld('api', {
-  getUser: () => {
-    manager
-      .send('get-user-data', { userId: 123 }, { timeout: 3000 })
-      .then((response) => {
-        console.log('Received:', response);
-      })
-      .catch((err) => {
-        console.error('Failed:', err);
-      });
-  },
+  getUser: () => manager.send('get-user-data', { userId: 123 }, { timeout: 3000 }),
   ping: () => ipcRenderer.invoke('ping'),
 });
