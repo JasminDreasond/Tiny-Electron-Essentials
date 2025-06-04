@@ -9,6 +9,16 @@ import { serializeError } from '../Utils.mjs';
  * @typedef {import('../preload/IpcRequestManager.mjs').SendResult} SendResult
  */
 
+/**
+ * @typedef {(response: unknown, error: Error | null) => void} IPCRespondCallback
+ * A callback function used to respond to an IPC request.
+ */
+
+/**
+ * @typedef {(payload: any, respond: IPCRespondCallback, event?: Electron.IpcMainEvent) => void} IPCRequestHandler
+ * A handler function used to process incoming IPC requests on the main process.
+ */
+
 class TinyIpcResponder {
   /** @typedef {import('electron').IpcMainEvent} IpcMainEvent */
 
@@ -21,7 +31,7 @@ class TinyIpcResponder {
    * Register a channel listener that can use requestId to respond.
    *
    * @param {string} channel - Channel name for listening
-   * @param {(payload: any, respond: (response: any, error?: any) => void, event: Electron.IpcMainEvent) => void} handler
+   * @param {IPCRequestHandler} handler
    * @throws {Error} If the channel is invalid or handler is not a function
    * @throws {Error} If a handler is already registered for the channel
    */
@@ -30,7 +40,6 @@ class TinyIpcResponder {
       throw new Error('IPC on error: "channel" must be a non-empty string');
     if (typeof handler !== 'function')
       throw new Error('IPC on error: "handler" must be a function');
-
     if (this.#handlers.has(channel))
       throw new Error(`Handler already registered for channel "${channel}"`);
 
@@ -41,7 +50,7 @@ class TinyIpcResponder {
         return;
       }
 
-      /** @type {(response: unknown, error: Error|null) => void} */
+      /** @type {IPCRespondCallback} */
       const respond = (response, error = null) => {
         /** @type {SendResult} */
         const result = {
@@ -82,7 +91,7 @@ class TinyIpcResponder {
    * Register a channel listener that can use requestId to respond.
    *
    * @param {string} channel - Channel name for listening
-   * @param {(payload: any, respond: (response: any, error?: any) => void, event: Electron.IpcMainEvent) => void} handler
+   * @param {IPCRequestHandler} handler
    * @throws {Error} If the channel is invalid or handler is not a function
    * @throws {Error} If a handler is already registered for the channel
    */
