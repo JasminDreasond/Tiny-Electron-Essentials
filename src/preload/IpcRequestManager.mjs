@@ -51,13 +51,14 @@ class TinyIpcRequestManager {
    * @param {string} channel - The ipcRenderer channel to send
    * @param {any} payload - The data to send with the request
    * @param {EmitOptions} [options]
-   * @returns {Promise<any>}
+   * @returns {Promise<unknown>}
    */
   send(channel, payload, options = {}) {
     const __requestId = crypto.randomUUID();
     /** @type {SendData} */
     const message = { __requestId, payload };
 
+    if (this.#pending.has(__requestId)) return this.send(channel, payload, options);
     return new Promise((resolve, reject) => {
       const timeoutId = options.timeout
         ? setTimeout(() => {
