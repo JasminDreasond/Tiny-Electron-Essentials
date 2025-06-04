@@ -1,14 +1,18 @@
 import { ipcRenderer } from 'electron';
 
 /**
+ * Options for customizing the IPC emit behavior.
+ *
  * @typedef {Object} EmitOptions
- * @property {number} [timeout] - Timeout in milliseconds before rejecting the request
+ * @property {number} [timeout] - Optional timeout in milliseconds. If defined, the request will automatically reject if no response is received in this time.
  */
 
 /**
+ * The data structure used to send a message through IPC.
+ *
  * @typedef {Object} SendData
- * @property {string} __requestId
- * @property {unknown} payload
+ * @property {string} __requestId - A unique identifier for correlating the request and its response.
+ * @property {unknown} payload - The actual data being sent with the request.
  */
 
 /**
@@ -22,10 +26,12 @@ class TinyIpcRequestManager {
   /** @typedef {import('electron').IpcMainEvent} IpcMainEvent */
 
   /**
+   * Internal structure used to track a pending request and its associated handlers.
+   *
    * @typedef {Object} RequestData
-   * @property {(value: any) => void} resolve
-   * @property {(reason?: any) => void} reject
-   * @property {NodeJS.Timeout | null} timeoutId
+   * @property {(value: any) => void} resolve - Function used to resolve the Promise once a response is received.
+   * @property {(reason?: any) => void} reject - Function used to reject the Promise if an error occurs or it times out.
+   * @property {NodeJS.Timeout | null} timeoutId - Optional timeout reference, used to clear the timeout if the response arrives in time.
    */
 
   /** @type {Map<string, RequestData>} */
@@ -52,18 +58,31 @@ class TinyIpcRequestManager {
    * @param {any} payload - The data to send with the request
    * @param {EmitOptions} [options]
    * @returns {Promise<unknown>}
+   * @throws {Error} If the channel or options are invalid
    */
   send(channel, payload, options = {}) {
+    if (typeof channel !== 'string' || channel.trim() === '')
+      throw new Error('IPC send error: "channel" must be a non-empty string');
+
+    if ('timeout' in options) {
+      if (typeof options.timeout !== 'number' || options.timeout <= 0)
+        throw new Error('IPC send error: "timeout" must be a positive number');
+    }
+
     const __requestId = crypto.randomUUID();
     /** @type {SendData} */
     const message = { __requestId, payload };
 
-    if (this.#pending.has(__requestId)) return this.send(channel, payload, options);
+    if (this.#pending.has(__requestId)) {
+      console.warn(`Duplicate __requestId detected: ${__requestId}. Retrying with a new ID...`);
+      return this.send(channel, payload, options);
+    }
+
     return new Promise((resolve, reject) => {
       const timeoutId = options.timeout
         ? setTimeout(() => {
             this.#pending.delete(__requestId);
-            reject(new Error('IPC request timeout'));
+            reject(new Error(`IPC request timeout after ${options.timeout}ms`));
           }, options.timeout)
         : null;
 

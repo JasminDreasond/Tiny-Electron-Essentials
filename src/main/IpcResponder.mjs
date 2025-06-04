@@ -17,17 +17,29 @@ class TinyIpcResponder {
   #handlers = new Map();
 
   /**
-   * Register a channel listener that can use requestId to respond
+   * Register a channel listener that can use requestId to respond.
+   *
    * @param {string} channel - Channel name for listening
    * @param {(payload: any, respond: (response: any, error?: any) => void, event: Electron.IpcMainEvent) => void} handler
+   * @throws {Error} If the channel is invalid or handler is not a function
+   * @throws {Error} If a handler is already registered for the channel
    */
   on(channel, handler) {
-    if (this.#handlers.has(channel)) {
+    if (typeof channel !== 'string' || channel.trim() === '')
+      throw new Error('IPC on error: "channel" must be a non-empty string');
+    if (typeof handler !== 'function')
+      throw new Error('IPC on error: "handler" must be a function');
+
+    if (this.#handlers.has(channel))
       throw new Error(`Handler already registered for channel "${channel}"`);
-    }
 
     /** @type {EventEmit} */
     const wrappedHandler = (event, { __requestId, payload }) => {
+      if (typeof __requestId !== 'string' || __requestId.trim() === '') {
+        console.warn(`Received event without valid __requestId on channel "${channel}"`);
+        return;
+      }
+
       /** @type {(response: unknown, error: Error|null) => void} */
       const respond = (response, error = null) => {
         /** @type {SendResult} */
@@ -49,14 +61,20 @@ class TinyIpcResponder {
 
   /**
    * Cancel the listener of a channel
-   * @param {string} channel
+   *
+   * @param {string} channel - Channel name to remove listener from
+   * @throws {Error} If the channel is invalid
+   * @throws {Error} If no handler is registered for the channel
    */
   off(channel) {
+    if (typeof channel !== 'string' || channel.trim() === '')
+      throw new Error('IPC off error: "channel" must be a non-empty string');
+
     const handler = this.#handlers.get(channel);
-    if (handler) {
-      ipcMain.removeListener(channel, handler);
-      this.#handlers.delete(channel);
-    }
+    if (!handler) throw new Error(`No handler registered for channel "${channel}"`);
+
+    ipcMain.removeListener(channel, handler);
+    this.#handlers.delete(channel);
   }
 
   /**
