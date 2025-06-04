@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import { serializeError } from '../Utils.mjs';
 
 /**
  * @typedef {import('../preload/IpcRequestManager.mjs').SendData} SendData
@@ -46,7 +47,7 @@ class TinyIpcResponder {
         const result = {
           __requestId,
           payload: response,
-          error,
+          error: error ? serializeError(error) : null,
         };
 
         event.sender.send('ipc-response', result);
@@ -75,6 +76,29 @@ class TinyIpcResponder {
 
     ipcMain.removeListener(channel, handler);
     this.#handlers.delete(channel);
+  }
+
+  /**
+   * Register a channel listener that can use requestId to respond.
+   *
+   * @param {string} channel - Channel name for listening
+   * @param {(payload: any, respond: (response: any, error?: any) => void, event: Electron.IpcMainEvent) => void} handler
+   * @throws {Error} If the channel is invalid or handler is not a function
+   * @throws {Error} If a handler is already registered for the channel
+   */
+  addListener(channel, handler) {
+    return this.on(channel, handler);
+  }
+
+  /**
+   * Cancel the listener of a channel
+   *
+   * @param {string} channel - Channel name to remove listener from
+   * @throws {Error} If the channel is invalid
+   * @throws {Error} If no handler is registered for the channel
+   */
+  removeListener(channel) {
+    return this.off(channel);
   }
 
   /**

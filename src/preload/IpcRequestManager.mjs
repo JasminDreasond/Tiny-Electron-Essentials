@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import { deserializeError } from '../Utils.mjs';
 
 /**
  * Options for customizing the IPC emit behavior.
@@ -47,7 +48,9 @@ class TinyIpcRequestManager {
         if (timeoutId) clearTimeout(timeoutId);
 
         this.#pending.delete(__requestId);
-        error ? reject(error) : resolve(payload);
+        let err;
+        if (error) err = deserializeError(error);
+        err ? reject(err) : resolve(payload);
       }
     });
   }
