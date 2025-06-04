@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { deserializeError } from '../Utils.mjs';
+import { deserializeError } from '../global/Utils.mjs';
 
 /**
  * Options for customizing the IPC emit behavior.

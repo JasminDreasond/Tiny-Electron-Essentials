@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { serializeError } from '../Utils.mjs';
+import { serializeError } from '../global/Utils.mjs';
 
 /**
  * @typedef {import('../preload/IpcRequestManager.mjs').SendData} SendData
