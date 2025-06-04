@@ -18,9 +18,11 @@ import { deserializeError } from '../Utils.mjs';
 
 /**
  * @typedef {Object} SendResult
- * @property {string} __requestId
- * @property {unknown} payload
- * @property {Error|null} error
+ * Represents the structure of a response message sent to the main process.
+ *
+ * @property {string} __requestId - Unique ID that matches the original request, used to resolve the correct Promise.
+ * @property {unknown} payload - The actual response data sent back to the requester.
+ * @property {Error|null} error - An Error if the request failed, or null if it succeeded.
  */
 
 class TinyIpcRequestManager {
