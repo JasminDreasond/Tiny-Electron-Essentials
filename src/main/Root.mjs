@@ -337,14 +337,27 @@ class TinyElectronRoot {
   }
 
   /**
-   * @param {Object} [settings={}]
-   * @param {boolean} [settings.quitOnAllClosed=true]
-   * @param {boolean} [settings.openWithBrowser=true]
-   * @param {string} [settings.urlBase]
-   * @param {string} [settings.pathBase]
-   * @param {string} [settings.title]
-   * @param {string} [settings.appId]
-   * @param {string} [settings.name=app.getName()] - The internal name of the application.
+   * Initializes the core application configuration and sets up essential app behaviors.
+   *
+   * This constructor sets up base application options such as window behavior,
+   * app identification, and URL handling. It also defines internal lifecycle events
+   * for handling window closures, second instance attempts, and macOS dock activations.
+   *
+   * - On **Windows**, it sets the App User Model ID to allow native toast notifications.
+   * - On **macOS**, it recreates the window when the dock icon is clicked and no windows are open.
+   * - When a second instance is started, it focuses the existing window instead of launching a new one.
+   *
+   * @param {Object} [settings={}] - Configuration settings for the application.
+   * @param {boolean} [settings.quitOnAllClosed=true] - Whether the app should quit when all windows are closed.
+   * @param {boolean} [settings.openWithBrowser=true] - Whether to allow fallback opening in the system browser.
+   * @param {string} [settings.urlBase] - The base URL for loading content if using remote sources.
+   * @param {string} [settings.pathBase] - The local path used for loading static files if not using a URL.
+   * @param {string} [settings.title] - The title of the application.
+   * @param {string} [settings.appId] - The unique App User Model ID (used for Windows notifications).
+   * @param {string} [settings.name=app.getName()] - The internal application name used by Electron APIs.
+   *
+   * @throws {Error} If any required string values (`urlBase`, `pathBase`, `title`, `appId`) are missing or not strings.
+   * @throws {Error} If `openWithBrowser` or `quitOnAllClosed` are not boolean values.
    */
   constructor({
     quitOnAllClosed = true,
