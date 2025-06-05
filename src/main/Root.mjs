@@ -7,7 +7,7 @@ import TinyWinInstance from './WinInstance.mjs';
 /**
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
  * @property {Electron.BrowserWindowConstructorOptions} [config] - Configuration for the new BrowserWindow.
- * @property {Electron.AppDetailsOptions} [appDetails] - Configuration for the browser app details.
+ * @property {Electron.AppDetailsOptions} [appDetails={ appId: this.getAppId(), appIconPath: this.#icon, relaunchDisplayName: this.getTitle() }] - Configuration for the browser app details.
  * @property {boolean} [openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
  * @property {boolean} [autoShow=true] - The window will appear when the load is finished.
  * @property {string[]} [urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
@@ -232,6 +232,7 @@ class TinyElectronRoot {
   #title;
   #urlBase;
   #pathBase;
+  #icon;
 
   #quitOnAllClosed;
   #openWithBrowser;
@@ -303,7 +304,7 @@ class TinyElectronRoot {
       config,
       appDetails = {
         appId: this.getAppId(),
-        appIconPath: icon,
+        appIconPath: this.#icon,
         relaunchDisplayName: this.getTitle(),
       },
       urls = ['https:', 'http:'],
@@ -330,6 +331,11 @@ class TinyElectronRoot {
     // Insert app details
     if (process.platform === 'win32') newInstance.win.setAppDetails(appDetails);
 
+    // Open devtools
+    ipcMain.on('openDevTools', (event) => {
+      if (newInstance.win && newInstance.isFromWin(event)) this.openDevTools(newInstance.win);
+    });
+
     // Complete
     const index = newInstance.getIndex();
     if (isMain) this.#win = newInstance;
@@ -352,6 +358,7 @@ class TinyElectronRoot {
    * @param {boolean} [settings.openWithBrowser=true] - Whether to allow fallback opening in the system browser.
    * @param {string} [settings.urlBase] - The base URL for loading content if using remote sources.
    * @param {string} [settings.pathBase] - The local path used for loading static files if not using a URL.
+   * @param {string} [settings.icon] - The icon of the application.
    * @param {string} [settings.title] - The title of the application.
    * @param {string} [settings.appId] - The unique App User Model ID (used for Windows notifications).
    * @param {string} [settings.name=app.getName()] - The internal application name used by Electron APIs.
@@ -363,6 +370,7 @@ class TinyElectronRoot {
     quitOnAllClosed = true,
     openWithBrowser = true,
     name = app.getName(),
+    icon,
     urlBase,
     pathBase,
     appId,
@@ -376,6 +384,8 @@ class TinyElectronRoot {
       throw new Error('Expected "title" to be a string. Provide a valid application title.');
     if (typeof appId !== 'string')
       throw new Error('Expected "appId" to be a string. Provide a valid application appId.');
+    if (typeof icon !== 'string')
+      throw new Error('Expected "icon" to be a string. Provide a valid application icon.');
 
     if (typeof openWithBrowser !== 'boolean')
       throw new Error(
@@ -393,6 +403,7 @@ class TinyElectronRoot {
     this.#pathBase = pathBase;
     this.#title = title;
     this.#appId = appId;
+    this.#icon = icon;
 
     // Set application name for Windows 10+ notifications
     if (process.platform === 'win32') app.setAppUserModelId(name);
@@ -426,6 +437,23 @@ class TinyElectronRoot {
       if (allWindows.length) allWindows[0].focus();
       else this.#execFirstTime();
     });
+  }
+
+  /**
+   * Checks if a specific CLI argument was provided when starting the application.
+   *
+   * This method scans `process.argv` to determine whether a particular argument
+   * (exact match) was passed via the command line. It's useful for enabling or
+   * disabling behaviors at runtime based on flags.
+   *
+   * @param {string} name - The exact argument name to search for (e.g., "--debug").
+   * @returns {boolean} `true` if the argument was found; otherwise, `false`.
+   */
+  hasCliArg(name) {
+    if (!Array.isArray(process.argv)) return false;
+    for (const argName of process.argv)
+      if (typeof argName === 'string' && argName === name) return true;
+    return false;
   }
 
   /**
@@ -566,6 +594,14 @@ class TinyElectronRoot {
       );
 
     return instance;
+  }
+
+  /**
+   * Returns the current application icon path.
+   * @returns {string}
+   */
+  getIcon() {
+    return this.#icon;
   }
 
   /**

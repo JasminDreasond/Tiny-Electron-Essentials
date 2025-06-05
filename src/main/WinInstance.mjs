@@ -1,4 +1,4 @@
-import { BrowserWindow, shell, ipcMain } from 'electron';
+import { BrowserWindow, shell, ipcMain, powerMonitor } from 'electron';
 
 /**
  * Represents a single managed Electron BrowserWindow instance.
@@ -79,9 +79,9 @@ class TinyWinInstance {
    * @returns {boolean} - Returns true if the event originated from this instance's window.
    */
   isFromWin(event) {
-    const webContents = event.frameId;
+    const webContents = event.sender;
     if (!event.senderFrame) return false;
-    const win = BrowserWindow.fromId(webContents);
+    const win = BrowserWindow.fromWebContents(webContents);
     if (win && win.id === this.win.id) return true;
     return false;
   }
@@ -258,6 +258,60 @@ class TinyWinInstance {
     this.win.on('resized', () => {
       if (this.win && this.win.webContents)
         this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    });
+
+    // Part 2
+    ipcMain.on('set-title', (event, title) => {
+      if (this.win && this.isFromWin(event)) this.win.setTitle(title);
+    });
+
+    ipcMain.on('tiny-focus-window', (event) => {
+      if (this.win && this.isFromWin(event))
+        setTimeout(() => {
+          if (this.win && this.isFromWin(event)) this.win.focus();
+        }, 200);
+    });
+
+    ipcMain.on('tiny-blur-window', (event) => {
+      if (this.win && this.isFromWin(event))
+        setTimeout(() => {
+          if (this.win && this.isFromWin(event)) this.win.blur();
+        }, 200);
+    });
+
+    ipcMain.on('tiny-show-window', (event) => {
+      if (this.win && this.isFromWin(event))
+        setTimeout(() => {
+          if (this.win && this.isFromWin(event)) this.win.show();
+        }, 200);
+    });
+
+    ipcMain.on('tiny-force-focus-window', (event) => {
+      if (this.win && this.isFromWin(event))
+        setTimeout(() => {
+          if (this.win && this.isFromWin(event)) {
+            this.win.show();
+            this.win.focus();
+          }
+        }, 200);
+    });
+
+    ipcMain.on('systemIdleTime', (event) => {
+      if (this.win && this.isFromWin(event)) {
+        const idleSecs = powerMonitor.getSystemIdleTime();
+        this.win.webContents.send('systemIdleTime', idleSecs);
+      }
+    });
+
+    ipcMain.on('systemIdleState', (event, value) => {
+      if (this.win && this.isFromWin(event)) {
+        const idleSecs = powerMonitor.getSystemIdleState(value);
+        this.win.webContents.send('systemIdleState', idleSecs);
+      }
+    });
+
+    ipcMain.on('windowIsVisible', (event, isVisible) => {
+      if (this.win && this.isFromWin(event)) this.toggleVisible(isVisible === true);
     });
   }
 }
