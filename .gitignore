@@ -2,6 +2,10 @@
 /global/
 /main/
 /preload/
+/index.mjs
+/index.cjs
+/index.d.mts
+/index.d.mts.map
 
 # But do not ignore them if inside src/
 !src/global/

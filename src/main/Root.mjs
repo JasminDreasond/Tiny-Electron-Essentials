@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { EventEmitter } from 'events';
 import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron';
@@ -237,6 +238,11 @@ class TinyElectronRoot {
   #quitOnAllClosed;
   #openWithBrowser;
 
+  #appDataName;
+
+  /** @type {Record<string, string>} */
+  #appDataStarted = {};
+
   /**
    * Warning message shown in the developer console when opened.
    * Intended to alert users about potential risks of pasting untrusted code.
@@ -361,6 +367,7 @@ class TinyElectronRoot {
    * @param {string} [settings.icon] - The icon of the application.
    * @param {string} [settings.title] - The title of the application.
    * @param {string} [settings.appId] - The unique App User Model ID (used for Windows notifications).
+   * @param {string} [settings.appDataName] - The appData application name used by folder names.
    * @param {string} [settings.name=app.getName()] - The internal application name used by Electron APIs.
    *
    * @throws {Error} If any required string values (`urlBase`, `pathBase`, `title`, `appId`) are missing or not strings.
@@ -375,6 +382,7 @@ class TinyElectronRoot {
     pathBase,
     appId,
     title,
+    appDataName,
   } = {}) {
     if (typeof urlBase !== 'string')
       throw new Error('Expected "urlBase" to be a string. Provide a valid application urlBase.');
@@ -386,6 +394,10 @@ class TinyElectronRoot {
       throw new Error('Expected "appId" to be a string. Provide a valid application appId.');
     if (typeof icon !== 'string')
       throw new Error('Expected "icon" to be a string. Provide a valid application icon.');
+    if (typeof appDataName !== 'string')
+      throw new Error(
+        'Expected "appDataName" to be a string. Provide a valid application appDataName.',
+      );
 
     if (typeof openWithBrowser !== 'boolean')
       throw new Error(
@@ -396,6 +408,7 @@ class TinyElectronRoot {
         'Expected "quitOnAllClosed" to be a boolean. Provide a valid application quitOnAllClosed.',
       );
 
+    this.#appDataName = appDataName;
     this.#quitOnAllClosed = quitOnAllClosed;
     this.#openWithBrowser = openWithBrowser;
     this.#loadByUrl = urlBase.trim().length > 0 ? true : false;
@@ -594,6 +607,84 @@ class TinyElectronRoot {
       );
 
     return instance;
+  }
+
+  /**
+   * @typedef {"home"|"appData"|"userData"|"sessionData"|"temp"|"exe"|"module"|"desktop"|"documents"|"downloads"|"music"|"pictures"|"videos"|"recent"|"logs"|"crashDumps"} ElectronPathName
+   */
+  /**
+   * Initializes the base folder in the given Electron path if not already created.
+   * Throws if the folder was already initialized.
+   *
+   * @param {ElectronPathName} [name] - The Electron path key to use as root.
+   * @returns {string} The absolute path of the created folder.
+   * @throws {Error} If the folder for this path was already initialized.
+   */
+  initAppDataDir(name = 'appData') {
+    if (typeof this.#appDataStarted[name] === 'string')
+      throw new Error(`App data for path "${name}" has already been initialized.`);
+    const folder = path.join(app.getPath(name), this.#appDataName);
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+    this.#appDataStarted[name] = folder;
+    return folder;
+  }
+
+  /**
+   * Retrieves the base folder path previously initialized via `initAppDataDir()`.
+   *
+   * @param {ElectronPathName} [name] - The Electron path key.
+   * @returns {string} The initialized app data folder path.
+   * @throws {Error} If the folder was not yet initialized.
+   */
+  getAppDataDir(name = 'appData') {
+    if (typeof this.#appDataStarted[name] !== 'string')
+      throw new Error(`App data root for path "${name}" has not been initialized.`);
+    return this.#appDataStarted[name];
+  }
+
+  /**
+   * Creates a subdirectory inside the initialized base app data folder.
+   * Throws if the subfolder was already created.
+   *
+   * @param {string} subdir - The name of the subfolder to create.
+   * @param {ElectronPathName} [name] - The Electron path key.
+   * @returns {string} The full path to the created subdirectory.
+   * @throws {Error} If the subdirectory already exists in memory tracking.
+   */
+  initAppDataSubdir(subdir, name = 'appData') {
+    const root = this.getAppDataDir(name);
+    const id = `${name}:${subdir}`;
+
+    if (typeof this.#appDataStarted[id] === 'string')
+      throw new Error(`App data subdir "${subdir}" under "${name}" has already been created.`);
+    const folder = path.join(root, subdir);
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+    this.#appDataStarted[id] = folder;
+    return folder;
+  }
+
+  /**
+   * Retrieves a previously created subdirectory path.
+   *
+   * @param {string} subdir - The name of the subfolder.
+   * @param {ElectronPathName} [name] - The Electron path key.
+   * @returns {string} The absolute path of the subdirectory.
+   * @throws {Error} If the subdirectory was not previously created.
+   */
+  getAppDataSubdir(subdir, name = 'appData') {
+    const id = `${name}:${subdir}`;
+    if (typeof this.#appDataStarted[id] !== 'string')
+      throw new Error(`App data subdir "${subdir}" under "${name}" has not been initialized.`);
+
+    return this.#appDataStarted[id];
+  }
+
+  /**
+   * Returns the current application appData folder name.
+   * @returns {string}
+   */
+  getAppDataName() {
+    return this.#appDataName;
   }
 
   /**
