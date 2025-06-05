@@ -88,18 +88,16 @@ class TinyWinInstance {
 
   /**
    * @param {Emit} emit - The root controller or application class managing this instance.
-   * @param {Electron.BrowserWindowConstructorOptions} config - Configuration for the BrowserWindow.
-   * @param {number|null} index - Index of the window in the manager (null for main window).
+   * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
+   * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
+   * @param {boolean} [settings.openWithBrowser=true] - if you will make all links open with the browser, not with the application.
+   * @param {number|null} [index=null] - Index of the window in the manager (null for main window).
    * @param {boolean} [isMain=false] - Indicates whether this is the main application window.
    * @throws {Error} If any parameter is invalid.
    */
-  constructor(emit, config, index = null, isMain = false) {
+  constructor(emit, { config, openWithBrowser = true } = {}, index = null, isMain = false) {
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
-    if (typeof config !== 'object' || config === null)
-      throw new Error(
-        `[Window Creation Error] 'config' must be a non-null object. Received: ${config}`,
-      );
     if (index !== null && typeof index !== 'number')
       throw new Error(
         `[Window Creation Error] 'index' must be a number or null. Received: ${typeof index}`,
@@ -109,9 +107,22 @@ class TinyWinInstance {
         `[Window Creation Error] 'isMain' must be a boolean. Received: ${typeof isMain}`,
       );
 
+    if (typeof config === 'undefined' || typeof config !== 'object' || config === null)
+      throw new Error('[Window Creation Error] Expected "config" to be an object if defined.');
+
+    if (typeof openWithBrowser !== 'boolean')
+      throw new Error('[Window Creation Error] Expected "openWithBrowser" to be an boolean.');
+
     this.win = new BrowserWindow(config);
     this.#emit = emit;
     this.#index = index;
+
+    // Make all links open with the browser, not with the application
+    if (openWithBrowser)
+      this.win.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('https:') || url.startsWith('http:')) shell.openExternal(url);
+        return { action: 'deny' };
+      });
 
     // Window status
     ipcMain.on('window-is-maximized', (event) => {

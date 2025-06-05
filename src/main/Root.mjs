@@ -219,12 +219,13 @@ class TinyElectronRoot {
   #isQuiting = false;
   #winIds = -1;
 
-  #appId = '';
-  #title = '';
-  #urlBase = '';
-  #pathBase = '';
+  #appId;
+  #title;
+  #urlBase;
+  #pathBase;
 
-  #quitOnAllClosed = true;
+  #quitOnAllClosed;
+  #openWithBrowser;
 
   /**
    * Warning message shown in the developer console when opened.
@@ -285,7 +286,8 @@ class TinyElectronRoot {
    *
    * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
    * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
-   * @param {Electron.AppDetailsOptions} [settings.appDetails]
+   * @param {Electron.AppDetailsOptions} [settings.appDetails] - Configuration for the browser app details.
+   * @param {boolean} [settings.openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
    * @param {boolean} [isMain=false] - Whether this window is the main application window.
    * @throws {Error} If settings is not an object.
    * @throws {Error} If trying to create a second main window.
@@ -298,12 +300,13 @@ class TinyElectronRoot {
         appIconPath: icon,
         relaunchDisplayName: this.getTitle(),
       },
+      openWithBrowser = this.#openWithBrowser,
     } = {},
     // Main
     isMain = false,
   ) {
     // Validate input
-    if (typeof config === 'undefined' || typeof config !== 'object' || appDetails === null)
+    if (typeof config === 'undefined' || typeof config !== 'object' || config === null)
       throw new Error('Expected "config" to be an object if defined.');
     if (typeof appDetails !== 'object' || appDetails === null)
       throw new Error('Expected "appDetails" to be a non-null object.');
@@ -313,7 +316,7 @@ class TinyElectronRoot {
     // New instance
     const newInstance = new TinyWinInstance(
       (event, ...args) => this.emit(event, ...args),
-      config,
+      { config, openWithBrowser },
       isMain ? null : this.#winIds++,
       isMain,
     );
@@ -330,6 +333,7 @@ class TinyElectronRoot {
   /**
    * @param {Object} [settings={}]
    * @param {boolean} [settings.quitOnAllClosed=true]
+   * @param {boolean} [settings.openWithBrowser=true]
    * @param {string} [settings.urlBase]
    * @param {string} [settings.pathBase]
    * @param {string} [settings.title]
@@ -338,6 +342,7 @@ class TinyElectronRoot {
    */
   constructor({
     quitOnAllClosed = true,
+    openWithBrowser = true,
     name = app.getName(),
     urlBase,
     pathBase,
@@ -353,7 +358,17 @@ class TinyElectronRoot {
     if (typeof appId !== 'string')
       throw new Error('Expected "appId" to be a string. Provide a valid application appId.');
 
+    if (typeof openWithBrowser !== 'boolean')
+      throw new Error(
+        'Expected "openWithBrowser" to be a boolean. Provide a valid application openWithBrowser.',
+      );
+    if (typeof quitOnAllClosed !== 'boolean')
+      throw new Error(
+        'Expected "quitOnAllClosed" to be a boolean. Provide a valid application quitOnAllClosed.',
+      );
+
     this.#quitOnAllClosed = quitOnAllClosed;
+    this.#openWithBrowser = openWithBrowser;
     this.#loadByUrl = urlBase.trim().length > 0 ? true : false;
     this.#urlBase = urlBase;
     this.#pathBase = pathBase;
@@ -500,6 +515,15 @@ class TinyElectronRoot {
   }
 
   /**
+   * Indicates whether this instance has acquired the lock to run.
+   * Can be null (not yet determined), or a boolean result.
+   * @returns {null|boolean}
+   */
+  gotTheLock() {
+    return this.#gotTheLock;
+  }
+
+  /**
    * Opens the developer tools for the given BrowserWindow.
    * Also sends the custom console warning message to the devtools console.
    * @param {Electron.BrowserWindow} win - The target BrowserWindow instance.
@@ -526,7 +550,7 @@ class TinyElectronRoot {
    * If another instance is already running, it exits. Otherwise,
    * it sets up Electron readiness events and prepares the app.
    */
-  initApp() {
+  init() {
     this.#gotTheLock = app.requestSingleInstanceLock();
     if (!this.#gotTheLock) {
       app.quit();
