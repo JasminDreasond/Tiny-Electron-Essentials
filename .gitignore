@@ -5,13 +5,8 @@
 
 # But do not ignore them if inside src/
 !src/global/
-/src/global/**
-
 !src/main/
-/src/main/**
-
 !src/preload/
-/src/preload/**
 
 # Logs
 logs
