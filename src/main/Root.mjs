@@ -1,8 +1,17 @@
 import path from 'node:path';
 import { EventEmitter } from 'events';
-import { app, BrowserWindow, shell, ipcMain, Tray, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron';
 import { release } from 'node:os';
 import TinyWinInstance from './WinInstance.mjs';
+
+/**
+ * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
+ * @property {Electron.BrowserWindowConstructorOptions} [config] - Configuration for the new BrowserWindow.
+ * @property {Electron.AppDetailsOptions} [appDetails] - Configuration for the browser app details.
+ * @property {boolean} [openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
+ * @property {boolean} [autoShow=true] - The window will appear when the load is finished.
+ * @property {string[]} [urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
+ */
 
 class TinyElectronRoot {
   /**
@@ -252,7 +261,7 @@ class TinyElectronRoot {
 
   /**
    * A map of all created window instances indexed by their internal numeric ID.
-   * @type {Map<number, TinyWinInstance>}
+   * @type {Map<number|string, TinyWinInstance>}
    */
   #wins = new Map();
 
@@ -284,10 +293,7 @@ class TinyElectronRoot {
    * If marked as the main window, it will be assigned to `#win`. Otherwise, it's stored
    * in the `#wins` map using an auto-incremented index.
    *
-   * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
-   * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
-   * @param {Electron.AppDetailsOptions} [settings.appDetails] - Configuration for the browser app details.
-   * @param {boolean} [settings.openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
+   * @param {NewBrowserOptions} [settings={}] - Configuration for the new BrowserWindow
    * @param {boolean} [isMain=false] - Whether this window is the main application window.
    * @throws {Error} If settings is not an object.
    * @throws {Error} If trying to create a second main window.
@@ -300,14 +306,14 @@ class TinyElectronRoot {
         appIconPath: icon,
         relaunchDisplayName: this.getTitle(),
       },
+      urls = ['https:', 'http:'],
       openWithBrowser = this.#openWithBrowser,
+      autoShow = true,
     } = {},
     // Main
     isMain = false,
   ) {
     // Validate input
-    if (typeof config === 'undefined' || typeof config !== 'object' || config === null)
-      throw new Error('Expected "config" to be an object if defined.');
     if (typeof appDetails !== 'object' || appDetails === null)
       throw new Error('Expected "appDetails" to be a non-null object.');
     if (typeof isMain !== 'boolean') throw new Error('Expected "isMain" to be a boolean.');
@@ -316,7 +322,7 @@ class TinyElectronRoot {
     // New instance
     const newInstance = new TinyWinInstance(
       (event, ...args) => this.emit(event, ...args),
-      { config, openWithBrowser },
+      { config, openWithBrowser, autoShow, urls },
       isMain ? null : this.#winIds++,
       isMain,
     );
@@ -464,38 +470,89 @@ class TinyElectronRoot {
   }
 
   /**
-   * Checks whether a main window instance currently exists.
+   * Checks whether a main window or a specific secondary window exists.
+   *
+   * If a `key` is provided, this method will check for the existence of a secondary window
+   * in the internal map of windows. Only string keys are allowed.
+   *
+   * @param {string} [key] - Optional key to check existence of a specific secondary window.
    * @returns {boolean}
+   * @throws {Error} If the provided key is not a string.
    */
-  existsWin() {
-    return this.#win ? true : false;
+  existsWin(key) {
+    if (typeof key === 'undefined') return !!this.#win;
+    if (typeof key !== 'string')
+      throw new Error(
+        `[existsWin Error] Invalid key type "${typeof key}". Only string keys are supported.`,
+      );
+    return this.#wins.has(key);
   }
 
   /**
-   * Returns the current main BrowserWindow instance.
-   * Throws if no window is initialized.
+   * Returns the current main BrowserWindow instance or a specific one by key.
+   *
+   * If a `key` is provided, this method will attempt to retrieve a secondary window
+   * from the internal map of windows. Only string keys are accepted.
+   *
+   * @param {string} [key] - Optional key to retrieve a specific secondary window.
    * @returns {BrowserWindow}
-   * @throws {Error} If no main window exists.
+   * @throws {Error} If no main window exists, key is not a string, or the key does not match any window.
    */
-  getWin() {
-    if (!this.#win)
+  getWin(key) {
+    if (typeof key === 'undefined') {
+      if (!this.#win)
+        throw new Error(
+          '[getWin Error] No main window has been created. Call create a new main window first.',
+        );
+      return this.#win.win;
+    }
+
+    if (typeof key !== 'string')
       throw new Error(
-        '[getWin Error] No main window has been created. Call create a new main window first.',
+        `[getWin Error] Invalid key type "${typeof key}". Only string keys are supported.`,
       );
-    return this.#win.win;
+
+    /** @type {TinyWinInstance|undefined} */
+    const winObj = this.#wins.get(key);
+    if (!winObj)
+      throw new Error(
+        `[getWin Error] No window found for the given key "${key}". Check if the window was created.`,
+      );
+    return winObj.win;
   }
 
   /**
-   * Returns the status object associated with the main window.
+   * Returns the TinyWinInstance object associated with the main window or a specific one by key.
+   *
+   * If a `key` is provided, this method will attempt to retrieve a secondary window
+   * instance from the internal map of windows. Only string keys are supported.
+   *
+   * @param {string} [key] - Optional key to retrieve a specific secondary window instance.
    * @returns {TinyWinInstance}
-   * @throws {Error} If no main window exists.
+   * @throws {Error} If no main window exists, key is not a string, or the key does not match any window.
    */
-  getWinInstance() {
-    if (!this.#win)
+  getWinInstance(key) {
+    if (typeof key === 'undefined') {
+      if (!this.#win)
+        throw new Error(
+          '[getWinInstance Error] Cannot retrieve main instance because no main window has been initialized.',
+        );
+      return this.#win;
+    }
+
+    if (typeof key !== 'string')
       throw new Error(
-        '[getWinInstance Error] Cannot retrieve status because no main window has been initialized.',
+        `[getWinInstance Error] Invalid key type "${typeof key}". Only string keys are supported.`,
       );
-    return this.#win;
+
+    /** @type {TinyWinInstance|undefined} */
+    const instance = this.#wins.get(key);
+    if (!instance)
+      throw new Error(
+        `[getWinInstance Error] No window instance found for the given key "${key}".`,
+      );
+
+    return instance;
   }
 
   /**

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, Tray, Menu } from 'electron';
+import { BrowserWindow, shell, ipcMain } from 'electron';
 
 /**
  * Represents a single managed Electron BrowserWindow instance.
@@ -91,11 +91,18 @@ class TinyWinInstance {
    * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
    * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
    * @param {boolean} [settings.openWithBrowser=true] - if you will make all links open with the browser, not with the application.
+   * @param {boolean} [settings.autoShow=true] - The window will appear when the load is finished.
+   * @param {string[]} [settings.urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
    * @param {number|null} [index=null] - Index of the window in the manager (null for main window).
    * @param {boolean} [isMain=false] - Indicates whether this is the main application window.
    * @throws {Error} If any parameter is invalid.
    */
-  constructor(emit, { config, openWithBrowser = true } = {}, index = null, isMain = false) {
+  constructor(
+    emit,
+    { config, openWithBrowser = true, autoShow = true, urls = ['https:', 'http:'] } = {},
+    index = null,
+    isMain = false,
+  ) {
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
     if (index !== null && typeof index !== 'number')
@@ -112,6 +119,14 @@ class TinyWinInstance {
 
     if (typeof openWithBrowser !== 'boolean')
       throw new Error('[Window Creation Error] Expected "openWithBrowser" to be an boolean.');
+    if (typeof autoShow !== 'boolean')
+      throw new Error('[Window Creation Error] Expected "autoShow" to be an boolean.');
+
+    if (!Array.isArray(urls))
+      throw new Error('[Window Creation Error] Expected an url list of strings.');
+    for (const item of urls)
+      if (typeof item !== 'string')
+        throw new Error('[Window Creation Error] All urls in the array must be strings.');
 
     this.win = new BrowserWindow(config);
     this.#emit = emit;
@@ -120,9 +135,46 @@ class TinyWinInstance {
     // Make all links open with the browser, not with the application
     if (openWithBrowser)
       this.win.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.startsWith('https:') || url.startsWith('http:')) shell.openExternal(url);
+        let allowed = false;
+        for (const name of urls) {
+          if (url.startsWith(name)) {
+            allowed = true;
+            break;
+          }
+        }
+        if (allowed) shell.openExternal(url);
         return { action: 'deny' };
       });
+
+    // Show Page
+    this.win.once('ready-to-show', (...args) => {
+      this.#ready = true;
+      if (autoShow) this.toggleVisible(true);
+      this.#emit('ReadyToShow', this.#index, ...args);
+    });
+
+    /**
+     * Set proxy
+     * @type {(event: Electron.IpcMainEvent, config: Electron.ProxyConfig) => void}
+     */
+    ipcMain.on('set-proxy', (event, config) => {
+      if (this.win && this.win.webContents && this.isFromWin(event)) {
+        this.win.webContents.session
+          .setProxy(config)
+          .then((result) => {
+            if (this.win && this.win.webContents) this.win.webContents.send('set-proxy', result);
+          })
+          .catch((err) => {
+            if (this.win && this.win.webContents)
+              this.win.webContents.send('set-proxy-error', {
+                code: err.code,
+                message: err.message,
+                cause: err.cause,
+                stack: err.stack,
+              });
+          });
+      }
+    });
 
     // Window status
     ipcMain.on('window-is-maximized', (event) => {
