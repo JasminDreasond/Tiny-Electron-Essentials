@@ -612,6 +612,45 @@ class TinyElectronRoot {
   /**
    * @typedef {"home"|"appData"|"userData"|"sessionData"|"temp"|"exe"|"module"|"desktop"|"documents"|"downloads"|"music"|"pictures"|"videos"|"recent"|"logs"|"crashDumps"} ElectronPathName
    */
+
+  /**
+   * Returns the full path to a folder inside the Electron app's unpacked directory.
+   *
+   * Useful when accessing files that must remain unpacked (e.g. native binaries).
+   * Validates inputs and throws if any parameter is not a string.
+   *
+   * @param {string|null} [where] - The folder name to append inside the unpacked directory.
+   * @param {string} [packName='app.asar'] - The packed archive filename (usually "app.asar").
+   * @param {string} [unpackName='app.asar.unpacked'] - The corresponding unpacked folder name (usually "app.asar.unpacked").
+   * @returns {{ isUnpacked: boolean, unPackedFolder: string }} Object with unpacked folder path and status.
+   * @throws {Error} If any parameter is not a valid string.
+   */
+  getUnpackedFolder(where, packName = 'app.asar', unpackName = 'app.asar.unpacked') {
+    if (
+      typeof where !== 'undefined' &&
+      where !== null &&
+      (typeof where !== 'string' || !where.trim())
+    )
+      throw new Error(`Invalid "where" argument: expected non-empty string, got ${typeof where}`);
+    if (typeof packName !== 'string' || !packName.trim())
+      throw new Error(
+        `Invalid "packName" argument: expected non-empty string, got ${typeof packName}`,
+      );
+    if (typeof unpackName !== 'string' || !unpackName.trim())
+      throw new Error(
+        `Invalid "unpackName" argument: expected non-empty string, got ${typeof unpackName}`,
+      );
+
+    const basePath = app.getAppPath();
+    const unPackedFolder = basePath.replace(packName, unpackName);
+    const isUnpacked = unPackedFolder.endsWith(unpackName);
+
+    return {
+      isUnpacked,
+      unPackedFolder: typeof where === 'string' ? path.join(unPackedFolder, where) : unPackedFolder,
+    };
+  }
+
   /**
    * Initializes the base folder in the given Electron path if not already created.
    * Throws if the folder was already initialized.
@@ -621,6 +660,9 @@ class TinyElectronRoot {
    * @throws {Error} If the folder for this path was already initialized.
    */
   initAppDataDir(name = 'appData') {
+    if (typeof name !== 'string')
+      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+
     if (typeof this.#appDataStarted[name] === 'string')
       throw new Error(`App data for path "${name}" has already been initialized.`);
     const folder = path.join(app.getPath(name), this.#appDataName);
@@ -637,6 +679,9 @@ class TinyElectronRoot {
    * @throws {Error} If the folder was not yet initialized.
    */
   getAppDataDir(name = 'appData') {
+    if (typeof name !== 'string')
+      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+
     if (typeof this.#appDataStarted[name] !== 'string')
       throw new Error(`App data root for path "${name}" has not been initialized.`);
     return this.#appDataStarted[name];
@@ -652,6 +697,11 @@ class TinyElectronRoot {
    * @throws {Error} If the subdirectory already exists in memory tracking.
    */
   initAppDataSubdir(subdir, name = 'appData') {
+    if (typeof name !== 'string')
+      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+    if (typeof subdir !== 'string')
+      throw new Error(`Invalid key type "${typeof subdir}". Only string keys are supported.`);
+
     const root = this.getAppDataDir(name);
     const id = `${name}:${subdir}`;
 
@@ -672,6 +722,11 @@ class TinyElectronRoot {
    * @throws {Error} If the subdirectory was not previously created.
    */
   getAppDataSubdir(subdir, name = 'appData') {
+    if (typeof name !== 'string')
+      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+    if (typeof subdir !== 'string')
+      throw new Error(`Invalid key type "${typeof subdir}". Only string keys are supported.`);
+
     const id = `${name}:${subdir}`;
     if (typeof this.#appDataStarted[id] !== 'string')
       throw new Error(`App data subdir "${subdir}" under "${name}" has not been initialized.`);
