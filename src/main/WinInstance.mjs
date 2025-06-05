@@ -65,7 +65,6 @@ class TinyWinInstance {
     if (changeVisibleTo) this.win?.show();
     else this.win?.hide();
     this.#visible = changeVisibleTo;
-    // @ts-ignore
     this.#emit('ShowApp', this.#index, changeVisibleTo);
     return changeVisibleTo;
   }

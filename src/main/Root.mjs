@@ -219,6 +219,7 @@ class TinyElectronRoot {
   #isQuiting = false;
   #winIds = -1;
 
+  #appId = '';
   #title = '';
   #urlBase = '';
   #pathBase = '';
@@ -282,16 +283,45 @@ class TinyElectronRoot {
    * If marked as the main window, it will be assigned to `#win`. Otherwise, it's stored
    * in the `#wins` map using an auto-incremented index.
    *
-   * @param {Electron.BrowserWindowConstructorOptions} config - Configuration for the new BrowserWindow.
+   * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
+   * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
+   * @param {Electron.AppDetailsOptions} [settings.appDetails]
    * @param {boolean} [isMain=false] - Whether this window is the main application window.
+   * @throws {Error} If settings is not an object.
+   * @throws {Error} If trying to create a second main window.
    */
-  #createWindow(config, isMain = false) {
+  #createWindow(
+    {
+      config,
+      appDetails = {
+        appId: this.getAppId(),
+        appIconPath: icon,
+        relaunchDisplayName: this.getTitle(),
+      },
+    } = {},
+    // Main
+    isMain = false,
+  ) {
+    // Validate input
+    if (typeof config === 'undefined' || typeof config !== 'object' || appDetails === null)
+      throw new Error('Expected "config" to be an object if defined.');
+    if (typeof appDetails !== 'object' || appDetails === null)
+      throw new Error('Expected "appDetails" to be a non-null object.');
+    if (typeof isMain !== 'boolean') throw new Error('Expected "isMain" to be a boolean.');
+    if (isMain && this.#win) throw new Error('Main window already exists. Cannot create another.');
+
+    // New instance
     const newInstance = new TinyWinInstance(
       (event, ...args) => this.emit(event, ...args),
       config,
       isMain ? null : this.#winIds++,
       isMain,
     );
+
+    // Insert app details
+    if (process.platform === 'win32') newInstance.win.setAppDetails(appDetails);
+
+    // Complete
     const index = newInstance.getIndex();
     if (isMain) this.#win = newInstance;
     else this.#wins.set(typeof index === 'number' ? index : -1, newInstance);
@@ -300,14 +330,38 @@ class TinyElectronRoot {
   /**
    * @param {Object} [settings={}]
    * @param {boolean} [settings.quitOnAllClosed=true]
-   * @param {string} [settings.urlBase='']
-   * @param {string} [settings.pathBase='']
+   * @param {string} [settings.urlBase]
+   * @param {string} [settings.pathBase]
+   * @param {string} [settings.title]
+   * @param {string} [settings.appId]
+   * @param {string} [settings.name=app.getName()] - The internal name of the application.
    */
-  constructor({ quitOnAllClosed = true, urlBase = '', pathBase = '' } = {}) {
+  constructor({
+    quitOnAllClosed = true,
+    name = app.getName(),
+    urlBase,
+    pathBase,
+    appId,
+    title,
+  } = {}) {
+    if (typeof urlBase !== 'string')
+      throw new Error('Expected "urlBase" to be a string. Provide a valid application urlBase.');
+    if (typeof pathBase !== 'string')
+      throw new Error('Expected "pathBase" to be a string. Provide a valid application pathBase.');
+    if (typeof title !== 'string')
+      throw new Error('Expected "title" to be a string. Provide a valid application title.');
+    if (typeof appId !== 'string')
+      throw new Error('Expected "appId" to be a string. Provide a valid application appId.');
+
     this.#quitOnAllClosed = quitOnAllClosed;
     this.#loadByUrl = urlBase.trim().length > 0 ? true : false;
     this.#urlBase = urlBase;
     this.#pathBase = pathBase;
+    this.#title = title;
+    this.#appId = appId;
+
+    // Set application name for Windows 10+ notifications
+    if (process.platform === 'win32') app.setAppUserModelId(name);
 
     app.on('window-all-closed', () => {
       if (this.#quitOnAllClosed) {
@@ -432,14 +486,17 @@ class TinyElectronRoot {
   /**
    * Returns the current application title.
    * @returns {string}
-   * @throws {Error} If the title is not a string.
    */
   getTitle() {
-    if (typeof this.#title !== 'string')
-      throw new Error(
-        '[getTitle Error] The application title has not been set or is not a valid string.',
-      );
     return this.#title;
+  }
+
+  /**
+   * Returns the current application app id.
+   * @returns {string}
+   */
+  getAppId() {
+    return this.#appId;
   }
 
   /**
@@ -451,26 +508,6 @@ class TinyElectronRoot {
     this.#isBrowserWindow(win);
     win.webContents.openDevTools();
     win.webContents.send('console-message', this.#consoleOpenWarn[0], this.#consoleOpenWarn[1]);
-  }
-
-  /**
-   * Initializes the app configuration, setting application name and title.
-   *
-   * On Windows, it sets the app user model ID for proper toast notifications.
-   *
-   * @param {Object} [options={}] - Configuration options.
-   * @param {string} [options.name=app.getName()] - The internal name of the application.
-   * @param {string} [options.title] - The title to be displayed in the application window.
-   * @throws {Error} If `title` is not a string.
-   */
-  initConfig({ name = app.getName(), title } = {}) {
-    if (typeof title !== 'string')
-      throw new Error(
-        '[initConfig Error] Expected "title" to be a string. Provide a valid application title.',
-      );
-    // Set application name for Windows 10+ notifications
-    if (process.platform === 'win32') app.setAppUserModelId(name);
-    this.#title = title;
   }
 
   /**
