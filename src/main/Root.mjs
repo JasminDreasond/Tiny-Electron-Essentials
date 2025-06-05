@@ -4,14 +4,199 @@ import { app, BrowserWindow, shell, ipcMain, Tray, Menu } from 'electron';
 import { release } from 'node:os';
 
 /**
- * @typedef {{
- *  index: number|null;
- *  visible: boolean;
- *  toggleVisible: (isVisible?: boolean) => boolean;
- * }} WindowStatus
+ * Represents a single managed Electron BrowserWindow instance.
+ *
+ * This class tracks visibility, readiness, and index of the window.
+ * It allows toggling visibility and storing references to the parent controller and window instance.
  */
+class TinyWinInstance {
+  /** @type {number|null} */
+  #index = null;
+  #visible = false;
+  #ready = false;
 
-/** @typedef {{ instance: BrowserWindow; status: WindowStatus }} WinInstance */
+  /** @type {TinyElectronRoot} */
+  #root;
+
+  /**
+   * Returns the window index assigned to this instance.
+   * @returns {number|null}
+   */
+  getIndex() {
+    return this.#index;
+  }
+
+  /**
+   * Checks whether the window is currently visible.
+   * @returns {boolean}
+   */
+  isVisible() {
+    return this.#visible;
+  }
+
+  /**
+   * Checks whether the window is marked as ready.
+   * @returns {boolean}
+   */
+  isReady() {
+    return this.#ready;
+  }
+
+  /**
+   * Toggles the visibility of the window, or sets it explicitly if a value is provided.
+   *
+   * Emits the `ShowApp` event to the root instance when visibility changes.
+   *
+   * @param {boolean} [isVisible] - If defined, sets visibility to this value. Otherwise, it toggles.
+   * @returns {boolean} - The new visibility state.
+   * @throws {Error} If `isVisible` is not a boolean or undefined.
+   */
+  toggleVisible(isVisible) {
+    if (typeof isVisible !== 'undefined' && typeof isVisible !== 'boolean')
+      throw new Error(
+        `[toggleVisible Error] Expected a boolean or undefined, but got: ${typeof isVisible}`,
+      );
+
+    if (!this.#ready) return this.#visible;
+    const changeVisibleTo = typeof isVisible === 'boolean' ? isVisible : !this.#visible;
+
+    if (changeVisibleTo) this.win?.show();
+    else this.win?.hide();
+    this.#visible = changeVisibleTo;
+    // @ts-ignore
+    this.#root.#emit('ShowApp', this.#index, changeVisibleTo);
+    return changeVisibleTo;
+  }
+
+  /**
+   * Checks whether the given IPC event originated from this window instance.
+   *
+   * This is useful when multiple windows exist and you want to ensure an IPC event
+   * came from the correct one before handling it.
+   *
+   * @param {Electron.IpcMainEvent} event - The IPC event object received in the main process.
+   * @returns {boolean} - Returns true if the event originated from this instance's window.
+   */
+  isFromWin(event) {
+    const webContents = event.frameId;
+    if (!event.senderFrame) return false;
+    const win = BrowserWindow.fromId(webContents);
+    if (win && win.id === this.win.id) return true;
+    return false;
+  }
+
+  /**
+   * @param {TinyElectronRoot} root - The root controller or application class managing this instance.
+   * @param {Electron.BrowserWindowConstructorOptions} config - Configuration for the BrowserWindow.
+   * @param {number|null} index - Index of the window in the manager (null for main window).
+   * @param {boolean} [isMain=false] - Indicates whether this is the main application window.
+   * @throws {Error} If any parameter is invalid.
+   */
+  constructor(root, config, index = null, isMain = false) {
+    if (!(root instanceof TinyElectronRoot))
+      throw new Error(`[Window Creation Error] 'root' must be a TinyElectronRoot instance.`);
+    if (typeof config !== 'object' || config === null)
+      throw new Error(
+        `[Window Creation Error] 'config' must be a non-null object. Received: ${config}`,
+      );
+    if (index !== null && typeof index !== 'number')
+      throw new Error(
+        `[Window Creation Error] 'index' must be a number or null. Received: ${typeof index}`,
+      );
+    if (typeof isMain !== 'boolean')
+      throw new Error(
+        `[Window Creation Error] 'isMain' must be a boolean. Received: ${typeof isMain}`,
+      );
+
+    this.win = new BrowserWindow(config);
+    this.#root = root;
+    this.#index = index;
+
+    // Window status
+    ipcMain.on('window-is-maximized', (event) => {
+      if (this.win && this.win.webContents && this.isFromWin(event)) {
+        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+      }
+    });
+
+    ipcMain.on('window-maximize', (event) => {
+      if (this.win && this.isFromWin(event)) this.win.maximize();
+    });
+
+    ipcMain.on('window-unmaximize', (event) => {
+      if (this.win && this.isFromWin(event)) this.win.unmaximize();
+    });
+
+    ipcMain.on('window-minimize', (event) => {
+      if (this.win && this.isFromWin(event)) this.win.minimize();
+    });
+
+    ipcMain.on('window-hide', (event) => {
+      if (this.isFromWin(event)) this.toggleVisible(false);
+    });
+
+    // Resize
+    const resizeWindowEvent = () => {
+      if (this.win) this.win.webContents.send('resize', this.win.getSize());
+    };
+
+    this.win.on('resize', resizeWindowEvent);
+    this.win.on('resized', resizeWindowEvent);
+    this.win.on('will-resize', resizeWindowEvent);
+
+    this.win.on('maximize', resizeWindowEvent);
+    this.win.on('unmaximize', resizeWindowEvent);
+
+    this.win.on('minimize', resizeWindowEvent);
+    this.win.on('restore', resizeWindowEvent);
+
+    this.win.on('enter-full-screen', resizeWindowEvent);
+    this.win.on('leave-full-screen', resizeWindowEvent);
+
+    this.win.on('enter-html-full-screen', resizeWindowEvent);
+    this.win.on('leave-html-full-screen', resizeWindowEvent);
+
+    // More
+    this.win.on('focus', () => {
+      if (this.win && this.win.webContents) this.win.webContents.send('window-is-focused', true);
+    });
+
+    this.win.on('blur', () => {
+      if (this.win && this.win.webContents) this.win.webContents.send('window-is-focused', false);
+    });
+
+    this.win.on('show', () => {
+      if (this.win && this.win.webContents) this.win.webContents.send('window-is-visible', true);
+    });
+
+    this.win.on('hide', () => {
+      if (this.win && this.win.webContents) this.win.webContents.send('window-is-visible', false);
+    });
+
+    this.win.on('maximize', () => {
+      if (this.win && this.win.webContents) this.win.webContents.send('window-is-maximized', true);
+    });
+
+    this.win.on('unmaximize', () => {
+      if (this.win && this.win.webContents) this.win.webContents.send('window-is-maximized', false);
+    });
+
+    this.win.on('will-resize', () => {
+      if (this.win && this.win.webContents)
+        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    });
+
+    this.win.on('resize', () => {
+      if (this.win && this.win.webContents)
+        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    });
+
+    this.win.on('resized', () => {
+      if (this.win && this.win.webContents)
+        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    });
+  }
+}
 
 class TinyElectronRoot {
   /**
@@ -226,7 +411,6 @@ class TinyElectronRoot {
   #firstTime = true;
   #appReady = false;
   #isQuiting = false;
-  #appStarted = false;
   #winIds = -1;
 
   #title = '';
@@ -254,13 +438,13 @@ class TinyElectronRoot {
 
   /**
    * The current active window instance, or null if none exists.
-   * @type {WinInstance | null}
+   * @type {TinyWinInstance | null}
    */
   #win = null;
 
   /**
    * A map of all created window instances indexed by their internal numeric ID.
-   * @type {Map<number, WinInstance>}
+   * @type {Map<number, TinyWinInstance>}
    */
   #wins = new Map();
 
@@ -272,11 +456,7 @@ class TinyElectronRoot {
     if (!this.#firstTime) return;
     this.#firstTime = false;
 
-    ipcMain.on('app-quit', () => {
-      this.#isQuiting = true;
-      app.quit();
-    });
-
+    ipcMain.on('app-quit', () => this.quit());
     this.#emit('CreateFirstWindow');
   }
 
@@ -300,37 +480,8 @@ class TinyElectronRoot {
    * @param {boolean} [isMain=false] - Whether this window is the main application window.
    */
   #createWindow(config, isMain = false) {
-    if (typeof isMain !== 'boolean')
-      throw new Error(
-        `[Window Creation Error] Expected 'isMain' to be a boolean, but received: ${typeof isMain}`,
-      );
-    const win = new BrowserWindow(config);
-    const index = isMain ? null : this.#winIds++;
-
-    /** @type {WindowStatus} */
-    const status = {
-      index,
-      visible: false,
-      toggleVisible: (isVisible) => {
-        if (typeof isVisible !== 'undefined' && typeof isVisible !== 'boolean')
-          throw new Error(
-            `[toggleVisible Error] Expected a boolean or undefined, but got: ${typeof isVisible}`,
-          );
-
-        const changeVisibleTo =
-          typeof isVisible === 'boolean' ? isVisible : !newInstance.status.visible;
-
-        if (changeVisibleTo) win?.show();
-        else win?.hide();
-        newInstance.status.visible = changeVisibleTo;
-        this.#emit('ShowApp', index, changeVisibleTo);
-        return changeVisibleTo;
-      },
-    };
-
-    /** @type {WinInstance} */
-    const newInstance = { instance: win, status };
-
+    const newInstance = new TinyWinInstance(this, config, isMain ? null : this.#winIds++, isMain);
+    const index = newInstance.getIndex();
     if (isMain) this.#win = newInstance;
     else this.#wins.set(typeof index === 'number' ? index : -1, newInstance);
   }
@@ -359,8 +510,8 @@ class TinyElectronRoot {
     // Someone tried to run a second instance, we should focus our window.
     app.on('second-instance', () => {
       if (this.existsWin()) {
-        const status = this.getWinStatus();
-        status.toggleVisible(true);
+        const instance = this.getWinInstance();
+        instance.toggleVisible(true);
         const win = this.getWin();
         if (win.isMinimized()) {
           win.restore();
@@ -376,6 +527,17 @@ class TinyElectronRoot {
       if (allWindows.length) allWindows[0].focus();
       else this.#execFirstTime();
     });
+  }
+
+  /**
+   * Signals the application to quit and sets the internal quit flag.
+   *
+   * This method marks the app as intentionally quitting and then calls `app.quit()`.
+   * If called more than once, it has no additional effect beyond the first invocation.
+   */
+  quit() {
+    this.#isQuiting = true;
+    app.quit();
   }
 
   /**
@@ -440,20 +602,20 @@ class TinyElectronRoot {
       throw new Error(
         '[getWin Error] No main window has been created. Call create a new main window first.',
       );
-    return this.#win.instance;
+    return this.#win.win;
   }
 
   /**
    * Returns the status object associated with the main window.
-   * @returns {WindowStatus}
+   * @returns {TinyWinInstance}
    * @throws {Error} If no main window exists.
    */
-  getWinStatus() {
+  getWinInstance() {
     if (!this.#win)
       throw new Error(
-        '[getWinStatus Error] Cannot retrieve status because no main window has been initialized.',
+        '[getWinInstance Error] Cannot retrieve status because no main window has been initialized.',
       );
-    return this.#win.status;
+    return this.#win;
   }
 
   /**
