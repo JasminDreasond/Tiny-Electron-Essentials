@@ -456,13 +456,21 @@ class TinyElectronRoot {
   }
 
   /**
+   * Returns the internal TinyWindowFile instance.
+   * @returns {TinyWindowFile}
+   */
+  getWinFile() {
+    return this.#winFile;
+  }
+
+  /**
    * Creates a new Electron BrowserWindow and tracks it as a main or secondary window.
    *
    * If marked as the main window, it will be assigned to `#win`. Otherwise, it's stored
    * in the `#wins` map using an auto-incremented index.
    *
    * @param {NewBrowserOptions} [settings={}] - Configuration for the new BrowserWindow
-   * @returns {{ win: BrowserWindow, index: number }}
+   * @returns {TinyWinInstance}
    * @throws {Error} If settings is not an object.
    * @throws {Error} If trying to create a second main window.
    */
@@ -518,7 +526,7 @@ class TinyElectronRoot {
     // Complete
     if (isMain) this.#win = newInstance;
     else this.#wins.set(typeof index === 'number' ? index : -1, newInstance);
-    return { win, index };
+    return newInstance;
   }
 
   /**
@@ -702,15 +710,15 @@ class TinyElectronRoot {
    * If a `key` is provided, this method will check for the existence of a secondary window
    * in the internal map of windows. Only string keys are allowed.
    *
-   * @param {string} [key] - Optional key to check existence of a specific secondary window.
+   * @param {string|number} [key] - Optional key to check existence of a specific secondary window.
    * @returns {boolean}
    * @throws {Error} If the provided key is not a string.
    */
   existsWin(key) {
     if (typeof key === 'undefined') return !!this.#win;
-    if (typeof key !== 'string')
+    if (typeof key !== 'string' && typeof key !== 'number')
       throw new Error(
-        `[existsWin Error] Invalid key type "${typeof key}". Only string keys are supported.`,
+        `[existsWin Error] Invalid key type "${typeof key}". Only string or number keys are supported.`,
       );
     return this.#wins.has(key);
   }
@@ -721,7 +729,7 @@ class TinyElectronRoot {
    * If a `key` is provided, this method will attempt to retrieve a secondary window
    * from the internal map of windows. Only string keys are accepted.
    *
-   * @param {string} [key] - Optional key to retrieve a specific secondary window.
+   * @param {string|number} [key] - Optional key to retrieve a specific secondary window.
    * @returns {BrowserWindow}
    * @throws {Error} If no main window exists, key is not a string, or the key does not match any window.
    */
@@ -734,9 +742,9 @@ class TinyElectronRoot {
       return this.#win.getWin();
     }
 
-    if (typeof key !== 'string')
+    if (typeof key !== 'string' && typeof key !== 'number')
       throw new Error(
-        `[getWin Error] Invalid key type "${typeof key}". Only string keys are supported.`,
+        `[getWin Error] Invalid key type "${typeof key}". Only string or number keys are supported.`,
       );
 
     /** @type {TinyWinInstance|undefined} */
@@ -754,7 +762,7 @@ class TinyElectronRoot {
    * If a `key` is provided, this method will attempt to retrieve a secondary window
    * instance from the internal map of windows. Only string keys are supported.
    *
-   * @param {string} [key] - Optional key to retrieve a specific secondary window instance.
+   * @param {string|number} [key] - Optional key to retrieve a specific secondary window instance.
    * @returns {TinyWinInstance}
    * @throws {Error} If no main window exists, key is not a string, or the key does not match any window.
    */
@@ -767,9 +775,9 @@ class TinyElectronRoot {
       return this.#win;
     }
 
-    if (typeof key !== 'string')
+    if (typeof key !== 'string' && typeof key !== 'number')
       throw new Error(
-        `[getWinInstance Error] Invalid key type "${typeof key}". Only string keys are supported.`,
+        `[getWinInstance Error] Invalid key type "${typeof key}". Only string or number keys are supported.`,
       );
 
     /** @type {TinyWinInstance|undefined} */
