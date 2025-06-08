@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { EventEmitter } from 'events';
-import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray, Menu } from 'electron';
 import { release } from 'node:os';
+import { isJsonObject } from 'tiny-essentials';
 import TinyWinInstance from './WinInstance.mjs';
+import TinyWindowFile from './TinyWindowFile.mjs';
 
 /**
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
@@ -11,10 +13,14 @@ import TinyWinInstance from './WinInstance.mjs';
  * @property {Electron.AppDetailsOptions} [appDetails={ appId: this.getAppId(), appIconPath: this.#icon, relaunchDisplayName: this.getTitle() }] - Configuration for the browser app details.
  * @property {boolean} [openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
  * @property {boolean} [autoShow=true] - The window will appear when the load is finished.
+ * @property {string} [fileId] - (Optional) Id file of the window in the manager.
  * @property {string[]} [urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
+ * @property {boolean} [isMain=false] - Whether this window is the main application window.
  */
 
 class TinyElectronRoot {
+  #winFile = new TinyWindowFile();
+
   /**
    * Important instance used to make event emitter.
    * @type {EventEmitter}
@@ -273,18 +279,6 @@ class TinyElectronRoot {
   #wins = new Map();
 
   /**
-   * Executes initialization logic that must only run once.
-   * Registers a listener for app quit and emits a creation event for the first window.
-   */
-  #execFirstTime() {
-    if (!this.#firstTime) return;
-    this.#firstTime = false;
-
-    ipcMain.on('app-quit', () => this.quit());
-    this.#emit('CreateFirstWindow');
-  }
-
-  /**
    * Ensures the provided value is a valid Electron BrowserWindow instance.
    * @param {BrowserWindow} win - The window object to validate.
    * @throws {Error} If the value is not an instance of BrowserWindow.
@@ -295,57 +289,236 @@ class TinyElectronRoot {
   }
 
   /**
+   * Executes initialization logic that must only run once.
+   * Registers a listener for app quit and emits a creation event for the first window.
+   */
+  #execFirstTime() {
+    if (!this.#firstTime) return;
+    this.#firstTime = false;
+
+    /**
+     * @param {Electron.IpcMainEvent} event
+     * @returns {BrowserWindow|null}
+     */
+    const getWin = (event) => {
+      const webContents = event.sender;
+      if (!event.senderFrame) return null;
+      const win = BrowserWindow.fromWebContents(webContents);
+      if (win) return win;
+      return null;
+    };
+
+    /**
+     * @param {Electron.IpcMainEvent} event
+     * @returns {TinyWinInstance|null}
+     */
+    const getWinInstance = (event) => {
+      const webContents = event.sender;
+      if (!event.senderFrame) return null;
+      const win = BrowserWindow.fromWebContents(webContents);
+      if (win) {
+        if (this.#win && win.id === this.#win.getWin().id) return this.#win;
+        /** @type {TinyWinInstance|null} */
+        let result = null;
+        this.#wins.forEach((value) => {
+          if (!result && win.id === value.getWin().id) result = value;
+        });
+        return result;
+      }
+      return null;
+    };
+
+    ipcMain.on('openDevTools', (event) => {
+      const win = getWin(event);
+      if (win) this.openDevTools(win);
+    });
+
+    ipcMain.on('set-title', (event, title) => {
+      const win = getWin(event);
+      if (win) win.setTitle(title);
+    });
+
+    ipcMain.on('tiny-focus-window', (event) => {
+      const win = getWin(event);
+      if (win)
+        setTimeout(() => {
+          const win = getWin(event);
+          if (win) win.focus();
+        }, 200);
+    });
+
+    ipcMain.on('tiny-blur-window', (event) => {
+      const win = getWin(event);
+      if (win)
+        setTimeout(() => {
+          const win = getWin(event);
+          if (win) win.blur();
+        }, 200);
+    });
+
+    ipcMain.on('tiny-show-window', (event) => {
+      const win = getWin(event);
+      if (win)
+        setTimeout(() => {
+          const win = getWin(event);
+          if (win) win.show();
+        }, 200);
+    });
+
+    ipcMain.on('tiny-force-focus-window', (event) => {
+      const win = getWin(event);
+      if (win)
+        setTimeout(() => {
+          const win = getWin(event);
+          if (win) {
+            win.show();
+            win.focus();
+          }
+        }, 200);
+    });
+
+    ipcMain.on('systemIdleTime', (event) => {
+      const win = getWin(event);
+      if (win) {
+        const idleSecs = powerMonitor.getSystemIdleTime();
+        win.webContents.send('systemIdleTime', idleSecs);
+      }
+    });
+
+    ipcMain.on('systemIdleState', (event, value) => {
+      const win = getWin(event);
+      if (win) {
+        const idleSecs = powerMonitor.getSystemIdleState(value);
+        win.webContents.send('systemIdleState', idleSecs);
+      }
+    });
+
+    ipcMain.on('windowIsVisible', (event, isVisible) => {
+      const win = getWinInstance(event);
+      if (win) win.toggleVisible(isVisible === true);
+    });
+
+    ipcMain.on('app-quit', () => this.quit());
+
+    /**
+     * Set proxy
+     * @type {(event: Electron.IpcMainEvent, config: Electron.ProxyConfig) => void}
+     */
+    ipcMain.on('set-proxy', (event, config) => {
+      const win = getWin(event);
+      if (win && win.webContents) {
+        win.webContents.session
+          .setProxy(config)
+          .then((result) => {
+            if (win && win.webContents) win.webContents.send('set-proxy', result);
+          })
+          .catch((err) => {
+            if (win && win.webContents)
+              win.webContents.send('set-proxy-error', {
+                code: err.code,
+                message: err.message,
+                cause: err.cause,
+                stack: err.stack,
+              });
+          });
+      }
+    });
+
+    // Window status
+    ipcMain.on('window-is-maximized', (event) => {
+      const win = getWin(event);
+      if (win && win.webContents) {
+        win.webContents.send('window-is-maximized', win.isMaximized());
+      }
+    });
+
+    ipcMain.on('window-maximize', (event) => {
+      const win = getWin(event);
+      if (win) win.maximize();
+    });
+
+    ipcMain.on('window-unmaximize', (event) => {
+      const win = getWin(event);
+      if (win) win.unmaximize();
+    });
+
+    ipcMain.on('window-minimize', (event) => {
+      const win = getWin(event);
+      if (win) win.minimize();
+    });
+
+    ipcMain.on('window-hide', (event) => {
+      const win = getWinInstance(event);
+      if (win) win.toggleVisible(false);
+    });
+
+    this.#emit('CreateFirstWindow');
+  }
+
+  /**
    * Creates a new Electron BrowserWindow and tracks it as a main or secondary window.
    *
    * If marked as the main window, it will be assigned to `#win`. Otherwise, it's stored
    * in the `#wins` map using an auto-incremented index.
    *
    * @param {NewBrowserOptions} [settings={}] - Configuration for the new BrowserWindow
-   * @param {boolean} [isMain=false] - Whether this window is the main application window.
+   * @returns {{ win: BrowserWindow, index: number }}
    * @throws {Error} If settings is not an object.
    * @throws {Error} If trying to create a second main window.
    */
-  #createWindow(
-    {
-      config,
-      appDetails = {
-        appId: this.getAppId(),
-        appIconPath: this.#icon,
-        relaunchDisplayName: this.getTitle(),
-      },
-      urls = ['https:', 'http:'],
-      openWithBrowser = this.#openWithBrowser,
-      autoShow = true,
-    } = {},
-    // Main
+  createWindow({
+    config,
+    fileId,
+    appDetails = {
+      appId: this.getAppId(),
+      appIconPath: this.#icon,
+      relaunchDisplayName: this.getTitle(),
+    },
+    urls = ['https:', 'http:'],
+    openWithBrowser = this.#openWithBrowser,
+    autoShow = true,
     isMain = false,
-  ) {
+  } = {}) {
     // Validate input
-    if (typeof appDetails !== 'object' || appDetails === null)
-      throw new Error('Expected "appDetails" to be a non-null object.');
+    if (!isJsonObject(appDetails)) throw new Error('Expected "appDetails" to be a object.');
     if (typeof isMain !== 'boolean') throw new Error('Expected "isMain" to be a boolean.');
     if (isMain && this.#win) throw new Error('Main window already exists. Cannot create another.');
 
     // New instance
-    const newInstance = new TinyWinInstance(
-      (event, ...args) => this.emit(event, ...args),
-      { config, openWithBrowser, autoShow, urls },
-      isMain ? null : this.#winIds++,
-      isMain,
-    );
+    const index = this.#winIds++;
+    const newInstance = new TinyWinInstance((event, ...args) => this.emit(event, ...args), {
+      config,
+      openWithBrowser,
+      autoShow,
+      urls,
+      index,
+    });
+
+    const win = newInstance.getWin();
 
     // Insert app details
-    if (process.platform === 'win32') newInstance.win.setAppDetails(appDetails);
+    if (process.platform === 'win32') win.setAppDetails(appDetails);
 
-    // Open devtools
-    ipcMain.on('openDevTools', (event) => {
-      if (newInstance.win && newInstance.isFromWin(event)) this.openDevTools(newInstance.win);
+    // Prevent Close
+    win.on('close', (event) => {
+      if (typeof fileId === 'string') {
+        const winData = this.#winFile.getData(fileId);
+        fs.writeFileSync(fileId, JSON.stringify(winData));
+      }
+
+      if (newInstance.isReady()) {
+        if (!this.isQuiting()) {
+          event.preventDefault();
+          newInstance.toggleVisible(false);
+        }
+        return false;
+      }
     });
 
     // Complete
-    const index = newInstance.getIndex();
     if (isMain) this.#win = newInstance;
     else this.#wins.set(typeof index === 'number' ? index : -1, newInstance);
+    return { win, index };
   }
 
   /**
@@ -558,7 +731,7 @@ class TinyElectronRoot {
         throw new Error(
           '[getWin Error] No main window has been created. Call create a new main window first.',
         );
-      return this.#win.win;
+      return this.#win.getWin();
     }
 
     if (typeof key !== 'string')
@@ -572,7 +745,7 @@ class TinyElectronRoot {
       throw new Error(
         `[getWin Error] No window found for the given key "${key}". Check if the window was created.`,
       );
-    return winObj.win;
+    return winObj.getWin();
   }
 
   /**
@@ -649,6 +822,65 @@ class TinyElectronRoot {
       isUnpacked,
       unPackedFolder: typeof where === 'string' ? path.join(unPackedFolder, where) : unPackedFolder,
     };
+  }
+
+  /**
+   * Loads a Chromium extension from a specified folder and extension name.
+   *
+   * This method attempts to load the extension first from the unpacked folder.
+   * If that fails, it tries to load from a fallback path.
+   *
+   * @param {string} extName - The name of the extension's folder.
+   * @param {string} folder - Folder name inside the unpacked app path where the extension is located.
+   * @param {Electron.LoadExtensionOptions} [ops] - Optional Electron extension loading options.
+   * @returns {Promise<Electron.Extension>} A promise that resolves with the loaded extension.
+   * @throws {Error} If any required argument is missing or invalid.
+   * @throws {Error} If the extension fails to load from both primary and fallback paths.
+   *
+   * @beta
+   */
+  async loadExtension(extName, folder, ops) {
+    if (
+      typeof folder !== 'undefined' &&
+      folder !== null &&
+      (typeof folder !== 'string' || !folder.trim())
+    )
+      throw new Error(`Invalid "folder" argument: expected non-empty string, got ${typeof folder}`);
+    if (typeof extName !== 'string' || !extName.trim())
+      throw new Error(
+        `Invalid "extName" argument: expected non-empty string, got ${typeof extName}`,
+      );
+
+    const { unPackedFolder, isUnpacked } = this.getUnpackedFolder(folder);
+    if (isUnpacked) {
+      try {
+        const result = await session.defaultSession.extensions.loadExtension(
+          path.join(unPackedFolder, `./${extName}`),
+          ops,
+        );
+        return result;
+      } catch {
+        try {
+          const result = await session.defaultSession.extensions.loadExtension(
+            path.join(__dirname, `../${extName}`),
+            ops,
+          );
+          return result;
+        } catch (err) {
+          throw err;
+        }
+      }
+    } else {
+      try {
+        const result = await session.defaultSession.extensions.loadExtension(
+          path.join(__dirname, `../${extName}`),
+          ops,
+        );
+        return result;
+      } catch (err) {
+        throw err;
+      }
+    }
   }
 
   /**

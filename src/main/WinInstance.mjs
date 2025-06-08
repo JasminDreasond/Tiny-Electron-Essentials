@@ -1,4 +1,5 @@
-import { BrowserWindow, shell, ipcMain, powerMonitor } from 'electron';
+import { BrowserWindow, shell, ipcMain } from 'electron';
+import { isJsonObject } from 'tiny-essentials';
 
 /**
  * Represents a single managed Electron BrowserWindow instance.
@@ -9,10 +10,14 @@ import { BrowserWindow, shell, ipcMain, powerMonitor } from 'electron';
 class TinyWinInstance {
   /** @typedef {function(string | symbol, ...any): void} Emit */
 
-  /** @type {number|null} */
-  #index = null;
   #visible = false;
   #ready = false;
+
+  /** @type {string|number|null} */
+  #index = null;
+
+  /** @type {BrowserWindow} */
+  #win;
 
   /**
    * Emits an event with optional arguments.
@@ -22,7 +27,7 @@ class TinyWinInstance {
 
   /**
    * Returns the window index assigned to this instance.
-   * @returns {number|null}
+   * @returns {string|number|null}
    */
   getIndex() {
     return this.#index;
@@ -45,6 +50,19 @@ class TinyWinInstance {
   }
 
   /**
+   * Returns the internal BrowserWindow instance.
+   * @returns {BrowserWindow}
+   * @throws {Error} If the window is not initialized.
+   */
+  getWin() {
+    if (!this.#win)
+      throw new Error(
+        '[getWindow Error] The BrowserWindow instance is not available. Make sure it was properly created.',
+      );
+    return this.#win;
+  }
+
+  /**
    * Toggles the visibility of the window, or sets it explicitly if a value is provided.
    *
    * Emits the `ShowApp` event to the root instance when visibility changes.
@@ -62,8 +80,8 @@ class TinyWinInstance {
     if (!this.#ready) return this.#visible;
     const changeVisibleTo = typeof isVisible === 'boolean' ? isVisible : !this.#visible;
 
-    if (changeVisibleTo) this.win?.show();
-    else this.win?.hide();
+    if (changeVisibleTo) this.#win?.show();
+    else this.#win?.hide();
     this.#visible = changeVisibleTo;
     this.#emit('ShowApp', this.#index, changeVisibleTo);
     return changeVisibleTo;
@@ -82,7 +100,7 @@ class TinyWinInstance {
     const webContents = event.sender;
     if (!event.senderFrame) return false;
     const win = BrowserWindow.fromWebContents(webContents);
-    if (win && win.id === this.win.id) return true;
+    if (win && win.id === this.#win.id) return true;
     return false;
   }
 
@@ -90,32 +108,20 @@ class TinyWinInstance {
    * @param {Emit} emit - The root controller or application class managing this instance.
    * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
    * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
+   * @param {string|number} [settings.index] - (Optional) Index of the window in the manager.
    * @param {boolean} [settings.openWithBrowser=true] - if you will make all links open with the browser, not with the application.
    * @param {boolean} [settings.autoShow=true] - The window will appear when the load is finished.
    * @param {string[]} [settings.urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
-   * @param {number|null} [index=null] - Index of the window in the manager (null for main window).
-   * @param {boolean} [isMain=false] - Indicates whether this is the main application window.
    * @throws {Error} If any parameter is invalid.
    */
   constructor(
     emit,
-    { config, openWithBrowser = true, autoShow = true, urls = ['https:', 'http:'] } = {},
-    index = null,
-    isMain = false,
+    { config, index, openWithBrowser = true, autoShow = true, urls = ['https:', 'http:'] } = {},
   ) {
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
-    if (index !== null && typeof index !== 'number')
-      throw new Error(
-        `[Window Creation Error] 'index' must be a number or null. Received: ${typeof index}`,
-      );
-    if (typeof isMain !== 'boolean')
-      throw new Error(
-        `[Window Creation Error] 'isMain' must be a boolean. Received: ${typeof isMain}`,
-      );
-
-    if (typeof config === 'undefined' || typeof config !== 'object' || config === null)
-      throw new Error('[Window Creation Error] Expected "config" to be an object if defined.');
+    if (!isJsonObject(config))
+      throw new Error('[Window Creation Error] Expected "config" to be an object.');
 
     if (typeof openWithBrowser !== 'boolean')
       throw new Error('[Window Creation Error] Expected "openWithBrowser" to be an boolean.');
@@ -128,13 +134,20 @@ class TinyWinInstance {
       if (typeof item !== 'string')
         throw new Error('[Window Creation Error] All urls in the array must be strings.');
 
-    this.win = new BrowserWindow(config);
+    if (
+      typeof index !== 'undefined' &&
+      typeof index !== 'string' &&
+      (typeof index !== 'number' || !Number.isFinite(index) || Number.isNaN(index))
+    )
+      throw new Error('[Window Creation Error] Expected "index" to be an string or number.');
+
+    this.#win = new BrowserWindow(config);
     this.#emit = emit;
-    this.#index = index;
+    this.#index = index || null;
 
     // Make all links open with the browser, not with the application
     if (openWithBrowser)
-      this.win.webContents.setWindowOpenHandler(({ url }) => {
+      this.#win.webContents.setWindowOpenHandler(({ url }) => {
         let allowed = false;
         for (const name of urls) {
           if (url.startsWith(name)) {
@@ -147,172 +160,78 @@ class TinyWinInstance {
       });
 
     // Show Page
-    this.win.once('ready-to-show', (...args) => {
+    this.#win.once('ready-to-show', (...args) => {
       this.#ready = true;
       if (autoShow) this.toggleVisible(true);
       this.#emit('ReadyToShow', this.#index, ...args);
     });
 
-    /**
-     * Set proxy
-     * @type {(event: Electron.IpcMainEvent, config: Electron.ProxyConfig) => void}
-     */
-    ipcMain.on('set-proxy', (event, config) => {
-      if (this.win && this.win.webContents && this.isFromWin(event)) {
-        this.win.webContents.session
-          .setProxy(config)
-          .then((result) => {
-            if (this.win && this.win.webContents) this.win.webContents.send('set-proxy', result);
-          })
-          .catch((err) => {
-            if (this.win && this.win.webContents)
-              this.win.webContents.send('set-proxy-error', {
-                code: err.code,
-                message: err.message,
-                cause: err.cause,
-                stack: err.stack,
-              });
-          });
-      }
-    });
-
-    // Window status
-    ipcMain.on('window-is-maximized', (event) => {
-      if (this.win && this.win.webContents && this.isFromWin(event)) {
-        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
-      }
-    });
-
-    ipcMain.on('window-maximize', (event) => {
-      if (this.win && this.isFromWin(event)) this.win.maximize();
-    });
-
-    ipcMain.on('window-unmaximize', (event) => {
-      if (this.win && this.isFromWin(event)) this.win.unmaximize();
-    });
-
-    ipcMain.on('window-minimize', (event) => {
-      if (this.win && this.isFromWin(event)) this.win.minimize();
-    });
-
-    ipcMain.on('window-hide', (event) => {
-      if (this.isFromWin(event)) this.toggleVisible(false);
-    });
-
     // Resize
     const resizeWindowEvent = () => {
-      if (this.win) this.win.webContents.send('resize', this.win.getSize());
+      if (this.#win) this.#win.webContents.send('resize', this.#win.getSize());
     };
 
-    this.win.on('resize', resizeWindowEvent);
-    this.win.on('resized', resizeWindowEvent);
-    this.win.on('will-resize', resizeWindowEvent);
+    this.#win.on('resize', resizeWindowEvent);
+    this.#win.on('resized', resizeWindowEvent);
+    this.#win.on('will-resize', resizeWindowEvent);
 
-    this.win.on('maximize', resizeWindowEvent);
-    this.win.on('unmaximize', resizeWindowEvent);
+    this.#win.on('maximize', resizeWindowEvent);
+    this.#win.on('unmaximize', resizeWindowEvent);
 
-    this.win.on('minimize', resizeWindowEvent);
-    this.win.on('restore', resizeWindowEvent);
+    this.#win.on('minimize', resizeWindowEvent);
+    this.#win.on('restore', resizeWindowEvent);
 
-    this.win.on('enter-full-screen', resizeWindowEvent);
-    this.win.on('leave-full-screen', resizeWindowEvent);
+    this.#win.on('enter-full-screen', resizeWindowEvent);
+    this.#win.on('leave-full-screen', resizeWindowEvent);
 
-    this.win.on('enter-html-full-screen', resizeWindowEvent);
-    this.win.on('leave-html-full-screen', resizeWindowEvent);
+    this.#win.on('enter-html-full-screen', resizeWindowEvent);
+    this.#win.on('leave-html-full-screen', resizeWindowEvent);
 
     // More
-    this.win.on('focus', () => {
-      if (this.win && this.win.webContents) this.win.webContents.send('window-is-focused', true);
+    this.#win.on('focus', () => {
+      if (this.#win && this.#win.webContents) this.#win.webContents.send('window-is-focused', true);
     });
 
-    this.win.on('blur', () => {
-      if (this.win && this.win.webContents) this.win.webContents.send('window-is-focused', false);
+    this.#win.on('blur', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-focused', false);
     });
 
-    this.win.on('show', () => {
-      if (this.win && this.win.webContents) this.win.webContents.send('window-is-visible', true);
+    this.#win.on('show', () => {
+      if (this.#win && this.#win.webContents) this.#win.webContents.send('window-is-visible', true);
     });
 
-    this.win.on('hide', () => {
-      if (this.win && this.win.webContents) this.win.webContents.send('window-is-visible', false);
+    this.#win.on('hide', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-visible', false);
     });
 
-    this.win.on('maximize', () => {
-      if (this.win && this.win.webContents) this.win.webContents.send('window-is-maximized', true);
+    this.#win.on('maximize', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-maximized', true);
     });
 
-    this.win.on('unmaximize', () => {
-      if (this.win && this.win.webContents) this.win.webContents.send('window-is-maximized', false);
+    this.#win.on('unmaximize', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-maximized', false);
     });
 
-    this.win.on('will-resize', () => {
-      if (this.win && this.win.webContents)
-        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    this.#win.on('will-resize', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-maximized', this.#win.isMaximized());
     });
 
-    this.win.on('resize', () => {
-      if (this.win && this.win.webContents)
-        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    this.#win.on('resize', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-maximized', this.#win.isMaximized());
     });
 
-    this.win.on('resized', () => {
-      if (this.win && this.win.webContents)
-        this.win.webContents.send('window-is-maximized', this.win.isMaximized());
+    this.#win.on('resized', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send('window-is-maximized', this.#win.isMaximized());
     });
 
     // Part 2
-    ipcMain.on('set-title', (event, title) => {
-      if (this.win && this.isFromWin(event)) this.win.setTitle(title);
-    });
-
-    ipcMain.on('tiny-focus-window', (event) => {
-      if (this.win && this.isFromWin(event))
-        setTimeout(() => {
-          if (this.win && this.isFromWin(event)) this.win.focus();
-        }, 200);
-    });
-
-    ipcMain.on('tiny-blur-window', (event) => {
-      if (this.win && this.isFromWin(event))
-        setTimeout(() => {
-          if (this.win && this.isFromWin(event)) this.win.blur();
-        }, 200);
-    });
-
-    ipcMain.on('tiny-show-window', (event) => {
-      if (this.win && this.isFromWin(event))
-        setTimeout(() => {
-          if (this.win && this.isFromWin(event)) this.win.show();
-        }, 200);
-    });
-
-    ipcMain.on('tiny-force-focus-window', (event) => {
-      if (this.win && this.isFromWin(event))
-        setTimeout(() => {
-          if (this.win && this.isFromWin(event)) {
-            this.win.show();
-            this.win.focus();
-          }
-        }, 200);
-    });
-
-    ipcMain.on('systemIdleTime', (event) => {
-      if (this.win && this.isFromWin(event)) {
-        const idleSecs = powerMonitor.getSystemIdleTime();
-        this.win.webContents.send('systemIdleTime', idleSecs);
-      }
-    });
-
-    ipcMain.on('systemIdleState', (event, value) => {
-      if (this.win && this.isFromWin(event)) {
-        const idleSecs = powerMonitor.getSystemIdleState(value);
-        this.win.webContents.send('systemIdleState', idleSecs);
-      }
-    });
-
-    ipcMain.on('windowIsVisible', (event, isVisible) => {
-      if (this.win && this.isFromWin(event)) this.toggleVisible(isVisible === true);
-    });
   }
 }
 
