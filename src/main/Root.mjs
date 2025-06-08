@@ -1,16 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { EventEmitter } from 'events';
-import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray } from 'electron';
 import { release } from 'node:os';
 import { isJsonObject } from 'tiny-essentials';
 import TinyWinInstance from './WinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
 
+// Remove electron security warnings
+// This warning only shows in development mode
+// Read more on https://www.electronjs.org/docs/latest/tutorial/security
+// process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
+
 /**
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
  * @property {Electron.BrowserWindowConstructorOptions} [config] - Configuration for the new BrowserWindow.
- * @property {Electron.AppDetailsOptions} [appDetails={ appId: this.getAppId(), appIconPath: this.#icon, relaunchDisplayName: this.getTitle() }] - Configuration for the browser app details.
+ * @property {Electron.AppDetailsOptions} [appDetails={ appId: this.getAppId(), appIconPath: this.getIcon(), relaunchDisplayName: this.getTitle() }] - Configuration for the browser app details.
  * @property {boolean} [openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
  * @property {boolean} [autoShow=true] - The window will appear when the load is finished.
  * @property {string} [fileId] - (Optional) Id file of the window in the manager.
@@ -239,6 +244,7 @@ class TinyElectronRoot {
   #title;
   #urlBase;
   #pathBase;
+  #iconFolder;
   #icon;
 
   #quitOnAllClosed;
@@ -248,6 +254,9 @@ class TinyElectronRoot {
 
   /** @type {Record<string, string>} */
   #appDataStarted = {};
+
+  /** @type {Map<string, Electron.Tray>} */
+  #trays = new Map();
 
   /**
    * Warning message shown in the developer console when opened.
@@ -452,7 +461,80 @@ class TinyElectronRoot {
       if (win) win.toggleVisible(false);
     });
 
+    // Icons
+    ipcMain.on('change-app-icon', (event, img) => {
+      const win = getWin(event);
+      try {
+        if (typeof img === 'string' && img.length > 0) {
+          if (win) win.setIcon(this.resolveSystemIconPath(img));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    ipcMain.on('change-tray-icon', (event, img, key) => {
+      try {
+        if (
+          typeof img === 'string' &&
+          img.length > 0 &&
+          typeof key === 'string' &&
+          this.hasTray(key)
+        ) {
+          this.getTray(key).setImage(this.resolveSystemIconPath(img));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
     this.#emit('CreateFirstWindow');
+  }
+
+  /**
+   * Resolves a safe full path to an icon file inside the icon folder based on the OS.
+   *
+   * - Linux: .png
+   * - Windows: .ico
+   * - macOS: .icns
+   *
+   * @param {string} filename - The base name of the icon (without extension).
+   * @param {string} [iconFolder=this.getIconFolder()] - The root folder where icons are stored.
+   * @returns {string} - The full, safe path to the icon.
+   * @throws {Error} If the filename is invalid, or the file does not exist or escapes the folder.
+   */
+  resolveSystemIconPath(filename, iconFolder = this.getIconFolder()) {
+    if (typeof filename !== 'string' || !/^[a-zA-Z0-9_.-]+$/.test(filename))
+      throw new Error(
+        `Invalid icon filename: "${filename}". Only use safe characters without slashes.`,
+      );
+
+    if (
+      typeof iconFolder !== 'string' ||
+      !fs.existsSync(iconFolder) ||
+      !fs.lstatSync(iconFolder).isDirectory()
+    )
+      throw new Error(`Invalid or missing icon folder: "${iconFolder}".`);
+
+    // Determine correct extension based on OS
+    let extension = '.png';
+    if (process.platform === 'win32') extension = '.ico';
+    else if (process.platform === 'darwin') extension = '.icns';
+
+    // Prevent directory traversal
+    const normalizedFolder = path.resolve(iconFolder);
+    const fullPath = path.resolve(normalizedFolder, filename + extension);
+
+    // Security: Ensure the fullPath is inside the icon folder
+    const relativePath = path.relative(normalizedFolder, fullPath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath))
+      throw new Error(`Illegal access attempt: "${filename}" resolves outside the icon folder.`);
+
+    // Check if file exists
+    if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile())
+      throw new Error(`Icon file not found: "${fullPath}".`);
+
+    return fullPath;
   }
 
   /**
@@ -479,7 +561,7 @@ class TinyElectronRoot {
     fileId,
     appDetails = {
       appId: this.getAppId(),
-      appIconPath: this.#icon,
+      appIconPath: this.getIcon(),
       relaunchDisplayName: this.getTitle(),
     },
     urls = ['https:', 'http:'],
@@ -507,13 +589,14 @@ class TinyElectronRoot {
     // Insert app details
     if (process.platform === 'win32') win.setAppDetails(appDetails);
 
-    // Prevent Close
     win.on('close', (event) => {
+      // Save window cache
       if (typeof fileId === 'string') {
         const winData = this.#winFile.getData(fileId);
         fs.writeFileSync(fileId, JSON.stringify(winData));
       }
 
+      // Prevent Close
       if (newInstance.isReady()) {
         if (!this.isQuiting()) {
           event.preventDefault();
@@ -527,6 +610,60 @@ class TinyElectronRoot {
     if (isMain) this.#win = newInstance;
     else this.#wins.set(typeof index === 'number' ? index : -1, newInstance);
     return newInstance;
+  }
+
+  /**
+   * Registers an existing Electron Tray instance under a given key.
+   *
+   * This method does not create a new tray. It simply stores a reference
+   * to an already created Electron Tray so it can be managed later.
+   *
+   * @param {string} key - A unique identifier for the tray.
+   * @param {Electron.Tray} tray - The Electron Tray instance to register.
+   * @throws {Error} If the key is not a string or if the tray is invalid.
+   */
+  registerTray(key, tray) {
+    if (typeof key !== 'string' || key.trim() === '')
+      throw new Error('[registerTray Error] Tray key must be a non-empty string.');
+    if (!(tray instanceof Tray))
+      throw new Error('[registerTray Error] Provided tray is not a valid Electron Tray instance.');
+    if (this.#trays.has(key))
+      throw new Error(`[registerTray Error] Tray key "${key}" is already registered.`);
+
+    this.#trays.set(key, tray);
+  }
+
+  /**
+   * Retrieves a registered Tray by its key.
+   *
+   * @param {string} key - The identifier of the tray to retrieve.
+   * @returns {Electron.Tray}
+   * @throws {Error} If the tray is not found.
+   */
+  getTray(key) {
+    const tray = this.#trays.get(key);
+    if (!tray) throw new Error(`[getTray Error] Tray with key "${key}" is not registered.`);
+    return tray;
+  }
+
+  /**
+   * Checks if a tray is registered under the specified key.
+   *
+   * @param {string} key - The key to check.
+   * @returns {boolean}
+   */
+  hasTray(key) {
+    return this.#trays.has(key);
+  }
+
+  /**
+   * Removes a tray from the registered tray list.
+   *
+   * @param {string} key - The identifier of the tray to delete.
+   * @returns {boolean} True if the tray was found and deleted; false otherwise.
+   */
+  deleteTray(key) {
+    return this.#trays.delete(key);
   }
 
   /**
@@ -546,13 +683,13 @@ class TinyElectronRoot {
    * @param {string} [settings.urlBase] - The base URL for loading content if using remote sources.
    * @param {string} [settings.pathBase] - The local path used for loading static files if not using a URL.
    * @param {string} [settings.icon] - The icon of the application.
+   * @param {string} [settings.iconFolder] - Path to a folder containing icon assets for the app and tray.
    * @param {string} [settings.title] - The title of the application.
    * @param {string} [settings.appId] - The unique App User Model ID (used for Windows notifications).
    * @param {string} [settings.appDataName] - The appData application name used by folder names.
    * @param {string} [settings.name=app.getName()] - The internal application name used by Electron APIs.
    *
-   * @throws {Error} If any required string values (`urlBase`, `pathBase`, `title`, `appId`) are missing or not strings.
-   * @throws {Error} If `openWithBrowser` or `quitOnAllClosed` are not boolean values.
+   * @throws {Error} If any required string values are missing or invalid.
    */
   constructor({
     quitOnAllClosed = true,
@@ -561,14 +698,24 @@ class TinyElectronRoot {
     icon,
     urlBase,
     pathBase,
+    iconFolder,
     appId,
     title,
     appDataName,
   } = {}) {
     if (typeof urlBase !== 'string')
       throw new Error('Expected "urlBase" to be a string. Provide a valid application urlBase.');
+
+    if (typeof iconFolder !== 'string')
+      throw new Error('Expected "iconFolder" to be a string. Provide a valid icon folder path.');
+    if (!fs.existsSync(iconFolder) || !fs.lstatSync(iconFolder).isDirectory())
+      throw new Error(`The icon folder path "${iconFolder}" does not exist or is not a directory.`);
+
     if (typeof pathBase !== 'string')
       throw new Error('Expected "pathBase" to be a string. Provide a valid application pathBase.');
+    if (!fs.existsSync(pathBase) || !fs.lstatSync(pathBase).isDirectory())
+      throw new Error(`The pathBase "${pathBase}" does not exist or is not a directory.`);
+
     if (typeof title !== 'string')
       throw new Error('Expected "title" to be a string. Provide a valid application title.');
     if (typeof appId !== 'string')
@@ -598,6 +745,7 @@ class TinyElectronRoot {
     this.#title = title;
     this.#appId = appId;
     this.#icon = icon;
+    this.#iconFolder = iconFolder;
 
     // Set application name for Windows 10+ notifications
     if (process.platform === 'win32') app.setAppUserModelId(name);
@@ -905,7 +1053,7 @@ class TinyElectronRoot {
 
     if (typeof this.#appDataStarted[name] === 'string')
       throw new Error(`App data for path "${name}" has already been initialized.`);
-    const folder = path.join(app.getPath(name), this.#appDataName);
+    const folder = path.join(app.getPath(name), this.getAppDataName());
     if (!fs.existsSync(folder)) fs.mkdirSync(folder);
     this.#appDataStarted[name] = folder;
     return folder;
@@ -979,6 +1127,8 @@ class TinyElectronRoot {
    * @returns {string}
    */
   getAppDataName() {
+    if (typeof this.#appDataName !== 'string' || this.#appDataName.trim() === '')
+      throw new Error('[getAppDataName Error] No appDataName was defined in the configuration.');
     return this.#appDataName;
   }
 
@@ -987,7 +1137,24 @@ class TinyElectronRoot {
    * @returns {string}
    */
   getIcon() {
+    if (typeof this.#icon !== 'string' || this.#icon.trim() === '')
+      throw new Error('[getIcon Error] No icon was defined in the configuration.');
     return this.#icon;
+  }
+
+  /**
+   * Returns the base folder path where icon assets are stored.
+   *
+   * This is useful when loading tray or window icons using relative paths
+   * from a single shared folder defined in the constructor.
+   *
+   * @returns {string} The path to the icon folder.
+   * @throws {Error} If the icon folder has not been defined.
+   */
+  getIconFolder() {
+    if (typeof this.#iconFolder !== 'string' || this.#iconFolder.trim() === '')
+      throw new Error('[getIconFolder Error] No icon folder was defined in the configuration.');
+    return this.#iconFolder;
   }
 
   /**
@@ -995,6 +1162,8 @@ class TinyElectronRoot {
    * @returns {string}
    */
   getTitle() {
+    if (typeof this.#title !== 'string' || this.#title.trim() === '')
+      throw new Error('[getTitle Error] No title was defined in the configuration.');
     return this.#title;
   }
 
@@ -1003,6 +1172,8 @@ class TinyElectronRoot {
    * @returns {string}
    */
   getAppId() {
+    if (typeof this.#appId !== 'string' || this.#appId.trim() === '')
+      throw new Error('[getAppId Error] No appId was defined in the configuration.');
     return this.#appId;
   }
 
