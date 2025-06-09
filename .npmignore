@@ -1,13 +1,3 @@
-# Ignore only root-level folders
-/global/
-/main/
-/preload/
-
-# But do not ignore them if inside src/
-!src/global/
-!src/main/
-!src/preload/
-
 # Remove original repository data
 src
 test
