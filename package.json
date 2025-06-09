@@ -23,6 +23,18 @@
     ".": {
       "require": "./index.cjs",
       "import": "./index.mjs"
+    },
+    "./preload": {
+      "require": "./preload/index.cjs",
+      "import": "./preload/index.mjs"
+    },
+    "./main": {
+      "require": "./main/index.cjs",
+      "import": "./main/index.mjs"
+    },
+    "./global": {
+      "require": "./global/index.cjs",
+      "import": "./global/index.mjs"
     }
   },
   "repository": {
