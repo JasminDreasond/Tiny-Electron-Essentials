@@ -16,11 +16,12 @@ import TinyWindowFile from './TinyWindowFile.mjs';
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
  * @property {Electron.BrowserWindowConstructorOptions} [config] - Configuration for the new BrowserWindow.
  * @property {Electron.AppDetailsOptions} [appDetails={ appId: this.getAppId(), appIconPath: this.getIcon(), relaunchDisplayName: this.getTitle() }] - Configuration for the browser app details.
- * @property {boolean} [openWithBrowser=this.#openWithBrowser] - if you will make all links open with the browser, not with the application.
+ * @property {boolean} [openWithBrowser=this.#openWithBrowser] - If you will make all links open with the browser, not with the application.
  * @property {boolean} [autoShow=true] - The window will appear when the load is finished.
  * @property {string} [fileId] - (Optional) Id file of the window in the manager.
  * @property {string[]} [urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
  * @property {boolean} [isMain=false] - Whether this window is the main application window.
+ * @property {boolean} [minimizeOnClose] - Overrides the default behavior to minimize the window instead of closing it. Falls back to `this.getMinimizeOnClose()` if not provided.
  */
 
 class TinyElectronRoot {
@@ -238,6 +239,7 @@ class TinyElectronRoot {
   #firstTime = true;
   #appReady = false;
   #isQuiting = false;
+  #minimizeOnClose = false;
   #winIds = -1;
 
   #appId;
@@ -257,6 +259,9 @@ class TinyElectronRoot {
 
   /** @type {Map<string, Electron.Tray>} */
   #trays = new Map();
+
+  /** @type {Map<number, boolean>} */
+  #winMinimizeOnClose = new Map();
 
   /**
    * Warning message shown in the developer console when opened.
@@ -559,6 +564,7 @@ class TinyElectronRoot {
   createWindow({
     config,
     fileId,
+    minimizeOnClose,
     appDetails = {
       appId: this.getAppId(),
       appIconPath: this.getIcon(),
@@ -573,6 +579,8 @@ class TinyElectronRoot {
     if (!isJsonObject(appDetails)) throw new Error('Expected "appDetails" to be a object.');
     if (typeof isMain !== 'boolean') throw new Error('Expected "isMain" to be a boolean.');
     if (isMain && this.#win) throw new Error('Main window already exists. Cannot create another.');
+    if (minimizeOnClose !== undefined && typeof minimizeOnClose !== 'boolean')
+      throw new Error('Expected "minimizeOnClose" to be a boolean if defined.');
 
     // New instance
     const index = this.#winIds++;
@@ -589,6 +597,10 @@ class TinyElectronRoot {
     // Insert app details
     if (process.platform === 'win32') win.setAppDetails(appDetails);
 
+    // Save custom minimizeOnClose (if any)
+    if (!isMain && typeof minimizeOnClose === 'boolean')
+      this.#winMinimizeOnClose.set(index, minimizeOnClose);
+
     win.on('close', (event) => {
       // Save window cache
       if (typeof fileId === 'string') {
@@ -597,18 +609,17 @@ class TinyElectronRoot {
       }
 
       // Prevent Close
-      if (newInstance.isReady()) {
-        if (!this.isQuiting()) {
-          event.preventDefault();
-          newInstance.toggleVisible(false);
-        }
+      const minimize = isMain ? this.getMinimizeOnClose() : this.getMinimizeOnCloseFor(index);
+      if (minimize && newInstance.isReady() && !this.isQuiting()) {
+        event.preventDefault();
+        newInstance.toggleVisible(false);
         return false;
       }
     });
 
     // Complete
     if (isMain) this.#win = newInstance;
-    else this.#wins.set(typeof index === 'number' ? index : -1, newInstance);
+    else this.#wins.set(index, newInstance);
     return newInstance;
   }
 
@@ -667,6 +678,63 @@ class TinyElectronRoot {
   }
 
   /**
+   * Gets whether the window should minimize instead of close on user request.
+   * @returns {boolean}
+   */
+  getMinimizeOnClose() {
+    return this.#minimizeOnClose;
+  }
+
+  /**
+   * Sets whether the window should minimize instead of close on user request.
+   * @param {boolean} value
+   */
+  setMinimizeOnClose(value) {
+    if (typeof value !== 'boolean') throw new TypeError('minimizeOnClose must be a boolean.');
+    this.#minimizeOnClose = value;
+  }
+
+  /**
+   * Gets the `minimizeOnClose` behavior for a specific window index.
+   * Falls back to the global setting if not explicitly set.
+   *
+   * @param {number} index - The index of the window.
+   * @returns {boolean}
+   */
+  getMinimizeOnCloseFor(index) {
+    return this.#winMinimizeOnClose.get(index) ?? this.getMinimizeOnClose();
+  }
+
+  /**
+   * Sets the `minimizeOnClose` behavior for a specific window index.
+   *
+   * @param {number} index - The index of the window.
+   * @param {boolean} value - Whether the window should minimize on close.
+   */
+  setMinimizeOnCloseFor(index, value) {
+    if (typeof index !== 'number' || typeof value !== 'boolean')
+      throw new Error('Expected index to be number and value to be boolean.');
+    if (!this.#wins.has(index)) throw new Error(`No window found with index ${index}`);
+    this.#winMinimizeOnClose.set(index, value);
+  }
+
+  /**
+   * Removes any custom `minimizeOnClose` override for a specific window.
+   *
+   * @param {number} index - The index of the window.
+   */
+  removeMinimizeOnCloseFor(index) {
+    this.#winMinimizeOnClose.delete(index);
+  }
+
+  /**
+   * Clears all custom `minimizeOnClose` settings for secondary windows.
+   */
+  clearMinimizeOnCloseOverrides() {
+    this.#winMinimizeOnClose.clear();
+  }
+
+  /**
    * Initializes the core application configuration and sets up essential app behaviors.
    *
    * This constructor sets up base application options such as window behavior,
@@ -688,6 +756,7 @@ class TinyElectronRoot {
    * @param {string} [settings.appId] - The unique App User Model ID (used for Windows notifications).
    * @param {string} [settings.appDataName] - The appData application name used by folder names.
    * @param {string} [settings.name=app.getName()] - The internal application name used by Electron APIs.
+   * @param {boolean} [settings.minimizeOnClose=false] - Whether to minimize instead of closing the window.
    *
    * @throws {Error} If any required string values are missing or invalid.
    */
@@ -702,6 +771,7 @@ class TinyElectronRoot {
     appId,
     title,
     appDataName,
+    minimizeOnClose = false,
   } = {}) {
     if (typeof urlBase !== 'string')
       throw new Error('Expected "urlBase" to be a string. Provide a valid application urlBase.');
@@ -727,6 +797,11 @@ class TinyElectronRoot {
         'Expected "appDataName" to be a string. Provide a valid application appDataName.',
       );
 
+    if (typeof minimizeOnClose !== 'boolean')
+      throw new Error(
+        'Expected "minimizeOnClose" to be a boolean. Provide a valid minimizeOnClose value.',
+      );
+
     if (typeof openWithBrowser !== 'boolean')
       throw new Error(
         'Expected "openWithBrowser" to be a boolean. Provide a valid application openWithBrowser.',
@@ -736,6 +811,7 @@ class TinyElectronRoot {
         'Expected "quitOnAllClosed" to be a boolean. Provide a valid application quitOnAllClosed.',
       );
 
+    this.#minimizeOnClose = minimizeOnClose;
     this.#appDataName = appDataName;
     this.#quitOnAllClosed = quitOnAllClosed;
     this.#openWithBrowser = openWithBrowser;
