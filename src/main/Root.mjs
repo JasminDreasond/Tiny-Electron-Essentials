@@ -249,7 +249,6 @@ class TinyElectronRoot {
   #iconFolder;
   #icon;
 
-  #quitOnAllClosed;
   #openWithBrowser;
 
   #appDataName;
@@ -746,7 +745,6 @@ class TinyElectronRoot {
    * - When a second instance is started, it focuses the existing window instead of launching a new one.
    *
    * @param {Object} [settings={}] - Configuration settings for the application.
-   * @param {boolean} [settings.quitOnAllClosed=true] - Whether the app should quit when all windows are closed.
    * @param {boolean} [settings.openWithBrowser=true] - Whether to allow fallback opening in the system browser.
    * @param {string} [settings.urlBase=''] - The base URL for loading content if using remote sources.
    * @param {string} [settings.pathBase] - The local path used for loading static files if not using a URL.
@@ -761,7 +759,6 @@ class TinyElectronRoot {
    * @throws {Error} If any required string values are missing or invalid.
    */
   constructor({
-    quitOnAllClosed = true,
     openWithBrowser = true,
     name = app.getName(),
     urlBase = '',
@@ -818,14 +815,9 @@ class TinyElectronRoot {
       throw new TypeError(
         'Expected "openWithBrowser" to be a boolean. Provide a valid application openWithBrowser.',
       );
-    if (typeof quitOnAllClosed !== 'boolean')
-      throw new TypeError(
-        'Expected "quitOnAllClosed" to be a boolean. Provide a valid application quitOnAllClosed.',
-      );
 
     this.#minimizeOnClose = minimizeOnClose;
     this.#appDataName = appDataName;
-    this.#quitOnAllClosed = quitOnAllClosed;
     this.#openWithBrowser = openWithBrowser;
     this.#loadByUrl = urlBase.trim().length > 0 ? true : false;
     this.#urlBase = urlBase;
@@ -836,13 +828,10 @@ class TinyElectronRoot {
     // Set application name for Windows 10+ notifications
     if (process.platform === 'win32') app.setAppUserModelId(name);
 
-    app.on('window-all-closed', () => {
-      if (this.#quitOnAllClosed) {
-        this.#win = null;
-        this.#wins.clear();
-        this.#isQuiting = true;
-        if (process.platform !== 'darwin') app.quit();
-      }
+    app.on('will-quit', () => {
+      this.#win = null;
+      this.#wins.clear();
+      this.#isQuiting = true;
     });
 
     // Someone tried to run a second instance, we should focus our window.
