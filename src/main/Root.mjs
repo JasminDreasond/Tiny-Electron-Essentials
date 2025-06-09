@@ -558,7 +558,7 @@ class TinyElectronRoot {
    *
    * @param {NewBrowserOptions} [settings={}] - Configuration for the new BrowserWindow
    * @returns {TinyWinInstance}
-   * @throws {Error} If settings is not an object.
+   * @throws {TypeError} If settings is not an object.
    * @throws {Error} If trying to create a second main window.
    */
   createWindow({
@@ -576,11 +576,11 @@ class TinyElectronRoot {
     isMain = false,
   } = {}) {
     // Validate input
-    if (!isJsonObject(appDetails)) throw new Error('Expected "appDetails" to be a object.');
-    if (typeof isMain !== 'boolean') throw new Error('Expected "isMain" to be a boolean.');
+    if (!isJsonObject(appDetails)) throw new TypeError('Expected "appDetails" to be a object.');
+    if (typeof isMain !== 'boolean') throw new TypeError('Expected "isMain" to be a boolean.');
     if (isMain && this.#win) throw new Error('Main window already exists. Cannot create another.');
     if (minimizeOnClose !== undefined && typeof minimizeOnClose !== 'boolean')
-      throw new Error('Expected "minimizeOnClose" to be a boolean if defined.');
+      throw new TypeError('Expected "minimizeOnClose" to be a boolean if defined.');
 
     // New instance
     const index = this.#winIds++;
@@ -635,7 +635,7 @@ class TinyElectronRoot {
    */
   registerTray(key, tray) {
     if (typeof key !== 'string' || key.trim() === '')
-      throw new Error('[registerTray Error] Tray key must be a non-empty string.');
+      throw new TypeError('[registerTray Error] Tray key must be a non-empty string.');
     if (!(tray instanceof Tray))
       throw new Error('[registerTray Error] Provided tray is not a valid Electron Tray instance.');
     if (this.#trays.has(key))
@@ -713,7 +713,7 @@ class TinyElectronRoot {
    */
   setMinimizeOnCloseFor(index, value) {
     if (typeof index !== 'number' || typeof value !== 'boolean')
-      throw new Error('Expected index to be number and value to be boolean.');
+      throw new TypeError('Expected index to be number and value to be boolean.');
     if (!this.#wins.has(index)) throw new Error(`No window found with index ${index}`);
     this.#winMinimizeOnClose.set(index, value);
   }
@@ -748,7 +748,7 @@ class TinyElectronRoot {
    * @param {Object} [settings={}] - Configuration settings for the application.
    * @param {boolean} [settings.quitOnAllClosed=true] - Whether the app should quit when all windows are closed.
    * @param {boolean} [settings.openWithBrowser=true] - Whether to allow fallback opening in the system browser.
-   * @param {string} [settings.urlBase] - The base URL for loading content if using remote sources.
+   * @param {string} [settings.urlBase=''] - The base URL for loading content if using remote sources.
    * @param {string} [settings.pathBase] - The local path used for loading static files if not using a URL.
    * @param {string} [settings.icon] - The icon of the application.
    * @param {string} [settings.iconFolder] - Path to a folder containing icon assets for the app and tray.
@@ -764,8 +764,8 @@ class TinyElectronRoot {
     quitOnAllClosed = true,
     openWithBrowser = true,
     name = app.getName(),
+    urlBase = '',
     icon,
-    urlBase,
     pathBase,
     iconFolder,
     appId,
@@ -774,40 +774,52 @@ class TinyElectronRoot {
     minimizeOnClose = false,
   } = {}) {
     if (typeof urlBase !== 'string')
-      throw new Error('Expected "urlBase" to be a string. Provide a valid application urlBase.');
+      throw new TypeError(
+        'Expected "urlBase" to be a string. Provide a valid application urlBase.',
+      );
+    if (typeof icon !== 'string')
+      throw new TypeError('Expected "icon" to be a string. Provide a valid application icon.');
 
     if (typeof iconFolder !== 'string')
-      throw new Error('Expected "iconFolder" to be a string. Provide a valid icon folder path.');
+      throw new TypeError(
+        'Expected "iconFolder" to be a string. Provide a valid icon folder path.',
+      );
     if (!fs.existsSync(iconFolder) || !fs.lstatSync(iconFolder).isDirectory())
       throw new Error(`The icon folder path "${iconFolder}" does not exist or is not a directory.`);
 
     if (typeof pathBase !== 'string')
-      throw new Error('Expected "pathBase" to be a string. Provide a valid application pathBase.');
+      throw new TypeError(
+        'Expected "pathBase" to be a string. Provide a valid application pathBase.',
+      );
     if (!fs.existsSync(pathBase) || !fs.lstatSync(pathBase).isDirectory())
       throw new Error(`The pathBase "${pathBase}" does not exist or is not a directory.`);
 
+    this.#iconFolder = iconFolder;
+    this.#pathBase = pathBase;
+
+    if (!fs.existsSync(this.resolveSystemIconPath(icon)))
+      throw new Error(`The icon "${icon}" does not exist.`);
+
     if (typeof title !== 'string')
-      throw new Error('Expected "title" to be a string. Provide a valid application title.');
+      throw new TypeError('Expected "title" to be a string. Provide a valid application title.');
     if (typeof appId !== 'string')
-      throw new Error('Expected "appId" to be a string. Provide a valid application appId.');
-    if (typeof icon !== 'string')
-      throw new Error('Expected "icon" to be a string. Provide a valid application icon.');
+      throw new TypeError('Expected "appId" to be a string. Provide a valid application appId.');
     if (typeof appDataName !== 'string')
-      throw new Error(
+      throw new TypeError(
         'Expected "appDataName" to be a string. Provide a valid application appDataName.',
       );
 
     if (typeof minimizeOnClose !== 'boolean')
-      throw new Error(
+      throw new TypeError(
         'Expected "minimizeOnClose" to be a boolean. Provide a valid minimizeOnClose value.',
       );
 
     if (typeof openWithBrowser !== 'boolean')
-      throw new Error(
+      throw new TypeError(
         'Expected "openWithBrowser" to be a boolean. Provide a valid application openWithBrowser.',
       );
     if (typeof quitOnAllClosed !== 'boolean')
-      throw new Error(
+      throw new TypeError(
         'Expected "quitOnAllClosed" to be a boolean. Provide a valid application quitOnAllClosed.',
       );
 
@@ -817,11 +829,9 @@ class TinyElectronRoot {
     this.#openWithBrowser = openWithBrowser;
     this.#loadByUrl = urlBase.trim().length > 0 ? true : false;
     this.#urlBase = urlBase;
-    this.#pathBase = pathBase;
     this.#title = title;
     this.#appId = appId;
     this.#icon = icon;
-    this.#iconFolder = iconFolder;
 
     // Set application name for Windows 10+ notifications
     if (process.platform === 'win32') app.setAppUserModelId(name);
@@ -900,7 +910,7 @@ class TinyElectronRoot {
    */
   setConsoleWarning(value) {
     if (!Array.isArray(value) || !value.every((v) => typeof v === 'string'))
-      throw new Error('consoleOpenWarn must be an array of strings.');
+      throw new TypeError('consoleOpenWarn must be an array of strings.');
     this.#consoleOpenWarn = [value[0], value[1]];
   }
 
@@ -936,12 +946,12 @@ class TinyElectronRoot {
    *
    * @param {string|number} [key] - Optional key to check existence of a specific secondary window.
    * @returns {boolean}
-   * @throws {Error} If the provided key is not a string.
+   * @throws {TypeError} If the provided key is not a string.
    */
   existsWin(key) {
     if (typeof key === 'undefined') return !!this.#win;
     if (typeof key !== 'string' && typeof key !== 'number')
-      throw new Error(
+      throw new TypeError(
         `[existsWin Error] Invalid key type "${typeof key}". Only string or number keys are supported.`,
       );
     return this.#wins.has(key);
@@ -967,7 +977,7 @@ class TinyElectronRoot {
     }
 
     if (typeof key !== 'string' && typeof key !== 'number')
-      throw new Error(
+      throw new TypeError(
         `[getWin Error] Invalid key type "${typeof key}". Only string or number keys are supported.`,
       );
 
@@ -1000,7 +1010,7 @@ class TinyElectronRoot {
     }
 
     if (typeof key !== 'string' && typeof key !== 'number')
-      throw new Error(
+      throw new TypeError(
         `[getWinInstance Error] Invalid key type "${typeof key}". Only string or number keys are supported.`,
       );
 
@@ -1028,7 +1038,7 @@ class TinyElectronRoot {
    * @param {string} [packName='app.asar'] - The packed archive filename (usually "app.asar").
    * @param {string} [unpackName='app.asar.unpacked'] - The corresponding unpacked folder name (usually "app.asar.unpacked").
    * @returns {{ isUnpacked: boolean, unPackedFolder: string }} Object with unpacked folder path and status.
-   * @throws {Error} If any parameter is not a valid string.
+   * @throws {TypeError} If any parameter is not a valid string.
    */
   getUnpackedFolder(where, packName = 'app.asar', unpackName = 'app.asar.unpacked') {
     if (
@@ -1036,13 +1046,15 @@ class TinyElectronRoot {
       where !== null &&
       (typeof where !== 'string' || !where.trim())
     )
-      throw new Error(`Invalid "where" argument: expected non-empty string, got ${typeof where}`);
+      throw new TypeError(
+        `Invalid "where" argument: expected non-empty string, got ${typeof where}`,
+      );
     if (typeof packName !== 'string' || !packName.trim())
-      throw new Error(
+      throw new TypeError(
         `Invalid "packName" argument: expected non-empty string, got ${typeof packName}`,
       );
     if (typeof unpackName !== 'string' || !unpackName.trim())
-      throw new Error(
+      throw new TypeError(
         `Invalid "unpackName" argument: expected non-empty string, got ${typeof unpackName}`,
       );
 
@@ -1066,8 +1078,8 @@ class TinyElectronRoot {
    * @param {string} folder - Folder name inside the unpacked app path where the extension is located.
    * @param {Electron.LoadExtensionOptions} [ops] - Optional Electron extension loading options.
    * @returns {Promise<Electron.Extension>} A promise that resolves with the loaded extension.
-   * @throws {Error} If any required argument is missing or invalid.
-   * @throws {Error} If the extension fails to load from both primary and fallback paths.
+   * @throws {TypeError} If any required argument is missing or invalid.
+   * @throws {TypeError} If the extension fails to load from both primary and fallback paths.
    *
    * @beta
    */
@@ -1077,9 +1089,11 @@ class TinyElectronRoot {
       folder !== null &&
       (typeof folder !== 'string' || !folder.trim())
     )
-      throw new Error(`Invalid "folder" argument: expected non-empty string, got ${typeof folder}`);
+      throw new TypeError(
+        `Invalid "folder" argument: expected non-empty string, got ${typeof folder}`,
+      );
     if (typeof extName !== 'string' || !extName.trim())
-      throw new Error(
+      throw new TypeError(
         `Invalid "extName" argument: expected non-empty string, got ${typeof extName}`,
       );
 
@@ -1125,7 +1139,7 @@ class TinyElectronRoot {
    */
   initAppDataDir(name = 'appData') {
     if (typeof name !== 'string')
-      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+      throw new TypeError(`Invalid key type "${typeof name}". Only string keys are supported.`);
 
     if (typeof this.#appDataStarted[name] === 'string')
       throw new Error(`App data for path "${name}" has already been initialized.`);
@@ -1144,7 +1158,7 @@ class TinyElectronRoot {
    */
   getAppDataDir(name = 'appData') {
     if (typeof name !== 'string')
-      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+      throw new TypeError(`Invalid key type "${typeof name}". Only string keys are supported.`);
 
     if (typeof this.#appDataStarted[name] !== 'string')
       throw new Error(`App data root for path "${name}" has not been initialized.`);
@@ -1162,9 +1176,9 @@ class TinyElectronRoot {
    */
   initAppDataSubdir(subdir, name = 'appData') {
     if (typeof name !== 'string')
-      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+      throw new TypeError(`Invalid key type "${typeof name}". Only string keys are supported.`);
     if (typeof subdir !== 'string')
-      throw new Error(`Invalid key type "${typeof subdir}". Only string keys are supported.`);
+      throw new TypeError(`Invalid key type "${typeof subdir}". Only string keys are supported.`);
 
     const root = this.getAppDataDir(name);
     const id = `${name}:${subdir}`;
@@ -1187,9 +1201,9 @@ class TinyElectronRoot {
    */
   getAppDataSubdir(subdir, name = 'appData') {
     if (typeof name !== 'string')
-      throw new Error(`Invalid key type "${typeof name}". Only string keys are supported.`);
+      throw new TypeError(`Invalid key type "${typeof name}". Only string keys are supported.`);
     if (typeof subdir !== 'string')
-      throw new Error(`Invalid key type "${typeof subdir}". Only string keys are supported.`);
+      throw new TypeError(`Invalid key type "${typeof subdir}". Only string keys are supported.`);
 
     const id = `${name}:${subdir}`;
     if (typeof this.#appDataStarted[id] !== 'string')
@@ -1215,7 +1229,7 @@ class TinyElectronRoot {
   getIcon() {
     if (typeof this.#icon !== 'string' || this.#icon.trim() === '')
       throw new Error('[getIcon Error] No icon was defined in the configuration.');
-    return this.#icon;
+    return this.resolveSystemIconPath(this.#icon);
   }
 
   /**
@@ -1266,10 +1280,11 @@ class TinyElectronRoot {
    * Opens the developer tools for the given BrowserWindow.
    * Also sends the custom console warning message to the devtools console.
    * @param {Electron.BrowserWindow} win - The target BrowserWindow instance.
+   * @param {Electron.OpenDevToolsOptions} [ops] - The target DevTools config.
    */
-  openDevTools(win) {
+  openDevTools(win, ops) {
     this.#isBrowserWindow(win);
-    win.webContents.openDevTools();
+    win.webContents.openDevTools(ops);
     win.webContents.send('console-message', this.#consoleOpenWarn[0], this.#consoleOpenWarn[1]);
   }
 
@@ -1314,23 +1329,52 @@ class TinyElectronRoot {
    *
    * @param {BrowserWindow} win - The target BrowserWindow instance.
    * @param {string|string[]} page - The page or path segments to load.
-   * @param {Electron.LoadFileOptions|Electron.LoadURLOptions} ops - Options passed to `loadFile` or `loadURL`.
+   * @param {Electron.LoadFileOptions|Electron.LoadURLOptions} [ops] - Options passed to `loadFile` or `loadURL`.
+   * @throws {TypeError} If the window is not a valid BrowserWindow.
+   * @throws {TypeError} If page is not a string or string[].
+   * @throws {TypeError} If page contains non-string entries.
+   * @throws {TypeError} If ops is not an object.
    */
   loadPath(win, page, ops) {
-    this.#isBrowserWindow(win);
+    // Validate BrowserWindow
+    this.#isBrowserWindow(win); // presume que já lança erro se não for
+
+    // Validate `page`
+    const pageData = [];
+
+    if (typeof page === 'string') {
+      pageData.push(page);
+    } else if (Array.isArray(page)) {
+      if (!page.every((p) => typeof p === 'string')) {
+        throw new TypeError('Expected all elements in the "page" array to be strings.');
+      }
+      pageData.push(...page);
+    } else {
+      throw new TypeError('Expected "page" to be a string or an array of strings.');
+    }
+
+    // Validate `ops`
+    if (ops !== undefined && !isJsonObject(ops))
+      throw new TypeError('Expected "ops" to be an object.');
+
+    // Load by URL or file
     if (this.#loadByUrl) {
       const url = new URL(this.#urlBase);
-      const pathname = [url.pathname, ...page].filter(Boolean).join('/');
+
+      // Clean join of path segments, avoiding double slashes
+      const pathname = [url.pathname, ...pageData].filter(Boolean).join('/');
+      const fullUrl = `${url.origin}/${pathname}`;
 
       /** @type {Electron.LoadURLOptions} */
       // @ts-ignore
       const options = ops;
-      win.loadURL(pathname, options);
+      win.loadURL(fullUrl, options);
     } else {
       /** @type {Electron.LoadFileOptions} */
       // @ts-ignore
       const options = ops;
-      win.loadFile(path.join(this.#pathBase, ...page), options);
+      const finalPath = path.join(this.#pathBase, ...pageData);
+      win.loadFile(finalPath, options);
     }
   }
 }

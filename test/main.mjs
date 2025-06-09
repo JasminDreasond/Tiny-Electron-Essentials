@@ -1,24 +1,39 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { app, BrowserWindow, ipcMain } from 'electron';
-import { TinyIpcResponder } from '../main/index.mjs';
+import { ipcMain } from 'electron';
+import { TinyElectronRoot, TinyIpcResponder } from '../main/index.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const responder = new TinyIpcResponder();
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
+const root = new TinyElectronRoot({
+  minimizeOnClose: false,
+  pathBase: path.join(__dirname, 'renderer'),
+  iconFolder: path.join(__dirname, 'icons'),
+  icon: 'favicon',
+  appId: 'tiny-electron-essentials',
+  appDataName: 'tiny-electron-essentials',
+  title: 'Tiny Electron Essentials',
+});
+
+root.on('CreateFirstWindow', () => {
+  const instance = root.createWindow({
+    config: {
+      width: 800,
+      height: 600,
+      icon: root.getIcon(),
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js'),
+      },
     },
   });
+
+  const win = instance.getWin();
 
   responder.on('get-user-data', async (payload, respond) => {
     try {
@@ -29,16 +44,12 @@ function createWindow() {
     }
   });
 
-  win.loadFile(path.join(__dirname, 'renderer/index.html'));
-  win.webContents.openDevTools({ mode: 'detach' }); // ou 'bottom', 'right', etc.
-}
-
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  root.loadPath(win, 'index.html');
+  root.openDevTools(win, { mode: 'detach' }); // ou 'bottom', 'right', etc.
 });
 
 ipcMain.handle('ping', async () => {
   return 'pong from main process';
 });
+
+root.init();
