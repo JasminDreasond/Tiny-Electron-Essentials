@@ -28,6 +28,10 @@ root.on('CreateFirstWindow', () => {
   console.log(`getIconFolder: ${root.getIconFolder()}`);
   console.log(`getIcon: ${root.getIcon()}`);
   console.log(`getAppDataName: ${root.getAppDataName()}`);
+  console.log(`getUnpackedFolder: ${JSON.stringify(root.getUnpackedFolder(), null, 2)}`);
+
+  const winFile = root.getWinFile();
+  // console.log(JSON.stringify(winFile.getData(), null, 2));
 
   const instance = root.createWindow({
     config: {
