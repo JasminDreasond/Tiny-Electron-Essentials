@@ -19,7 +19,16 @@ const root = new TinyElectronRoot({
   title: 'Tiny Electron Essentials',
 });
 
+root.installWinProtection();
+
 root.on('CreateFirstWindow', () => {
+  console.log(`gotTheLock: ${root.gotTheLock()}`);
+  console.log(`getAppId: ${root.getAppId()}`);
+  console.log(`getTitle: ${root.getTitle()}`);
+  console.log(`getIconFolder: ${root.getIconFolder()}`);
+  console.log(`getIcon: ${root.getIcon()}`);
+  console.log(`getAppDataName: ${root.getAppDataName()}`);
+
   const instance = root.createWindow({
     config: {
       width: 800,
@@ -31,6 +40,7 @@ root.on('CreateFirstWindow', () => {
         preload: path.join(__dirname, 'preload.js'),
       },
     },
+    isMain: true,
   });
 
   const win = instance.getWin();
