@@ -414,7 +414,7 @@ class TinyElectronRoot {
       }
     });
 
-    ipcMain.on('windowIsVisible', (event, isVisible) => {
+    ipcMain.on('toggleVisible', (event, isVisible) => {
       const win = getWinInstance(event);
       if (win) win.toggleVisible(isVisible === true);
     });
