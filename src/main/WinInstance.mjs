@@ -9,6 +9,8 @@ import { isJsonObject } from 'tiny-essentials';
  */
 class TinyWinInstance {
   /** @typedef {function(string | symbol, ...any): void} Emit */
+  /** @typedef {(win: Electron.BrowserWindow, ops?: Electron.OpenDevToolsOptions) => void} OpenDevTools */
+  /** @typedef {(win: Electron.BrowserWindow, page: string|string[], ops?: Electron.LoadFileOptions|Electron.LoadURLOptions) => void} LoadPath */
 
   #visible = false;
   #ready = false;
@@ -24,6 +26,16 @@ class TinyWinInstance {
    * @type {Emit}
    */
   #emit;
+
+  /**
+   * @type {OpenDevTools}
+   */
+  #openDevTools;
+
+  /**
+   * @type {LoadPath}
+   */
+  #loadPath;
 
   /**
    * Returns the window index assigned to this instance.
@@ -47,6 +59,28 @@ class TinyWinInstance {
    */
   isReady() {
     return this.#ready;
+  }
+
+  /**
+   * Loads a page. Depending on configuration, it can load a local file path or a URL.
+   *
+   * @param {string|string[]} page - The page or path segments to load.
+   * @param {Electron.LoadFileOptions|Electron.LoadURLOptions} [ops] - Options passed to `loadFile` or `loadURL`.
+   * @throws {TypeError} If page is not a string or string[].
+   * @throws {TypeError} If page contains non-string entries.
+   * @throws {TypeError} If ops is not an object.
+   */
+  loadPath(page, ops) {
+    return this.#loadPath(this.#win, page, ops);
+  }
+
+  /**
+   * Opens the developer tools.
+   * Also sends the custom console warning message to the devtools console.
+   * @param {Electron.OpenDevToolsOptions} [ops] - The target DevTools config.
+   */
+  openDevTools(ops) {
+    return this.#openDevTools(this.#win, ops);
   }
 
   /**
@@ -105,7 +139,10 @@ class TinyWinInstance {
   }
 
   /**
-   * @param {Emit} emit - The root controller or application class managing this instance.
+   * @param {Object} [settings2={}] - Configuration for the new instance.
+   * @param {Emit} [settings2.emit] - The root controller or application class managing this instance.
+   * @param {OpenDevTools} [settings2.openDevTools]
+   * @param {LoadPath} [settings2.loadPath]
    * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
    * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
    * @param {string|number} [settings.index] - (Optional) Index of the window in the manager.
@@ -116,7 +153,7 @@ class TinyWinInstance {
    * @throws {Error} If any parameter is invalid.
    */
   constructor(
-    emit,
+    { emit, loadPath, openDevTools } = {},
     {
       config,
       index,
@@ -128,6 +165,11 @@ class TinyWinInstance {
   ) {
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
+    if (typeof loadPath !== 'function')
+      throw new Error(`[Window Creation Error] 'loadPath' must be a loadPath.`);
+    if (typeof openDevTools !== 'function')
+      throw new Error(`[Window Creation Error] 'openDevTools' must be a openDevTools.`);
+
     if (!isJsonObject(config))
       throw new Error('[Window Creation Error] Expected "config" to be an object.');
 
@@ -153,6 +195,8 @@ class TinyWinInstance {
 
     this.#win = new BrowserWindow(config);
     this.#emit = emit;
+    this.#openDevTools = openDevTools;
+    this.#loadPath = loadPath;
     this.#index = index || null;
     this.#visible = show;
 

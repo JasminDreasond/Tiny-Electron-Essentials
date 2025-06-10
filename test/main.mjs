@@ -51,9 +51,6 @@ root.on('CreateFirstWindow', () => {
   console.log(`getAppDataName: ${root.getAppDataName()}`);
   console.log(`getUnpackedFolder: ${JSON.stringify(root.getUnpackedFolder(), null, 2)}`);
 
-  const winFile = root.getWinFile();
-  // console.log(JSON.stringify(winFile.getData(), null, 2));
-
   const instance = root.createWindow({
     config: {
       width: 800,
@@ -69,8 +66,6 @@ root.on('CreateFirstWindow', () => {
     isMain: true,
   });
 
-  const win = instance.getWin();
-
   responder.on('get-user-data', async (payload, respond) => {
     try {
       const user = { result: 'pudding', time: Date.now(), ...payload };
@@ -80,8 +75,8 @@ root.on('CreateFirstWindow', () => {
     }
   });
 
-  root.loadPath(win, 'index.html');
-  root.openDevTools(win, { mode: 'detach' }); // ou 'bottom', 'right', etc.
+  instance.loadPath('index.html');
+  instance.openDevTools({ mode: 'detach' }); // ou 'bottom', 'right', etc.
 });
 
 // Ping

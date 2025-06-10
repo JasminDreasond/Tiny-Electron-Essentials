@@ -612,14 +612,21 @@ class TinyElectronRoot {
     if (typeof showCfg === 'undefined') showCfg = true;
     cfg.show = false;
 
-    const newInstance = new TinyWinInstance((event, ...args) => this.emit(event, ...args), {
-      config: cfg,
-      isMaximized,
-      openWithBrowser,
-      show: showCfg,
-      urls,
-      index,
-    });
+    const newInstance = new TinyWinInstance(
+      {
+        emit: (event, ...args) => this.emit(event, ...args),
+        loadPath: (win, page, ops) => this.loadPath(win, page, ops),
+        openDevTools: (win, ops) => this.openDevTools(win, ops),
+      },
+      {
+        config: cfg,
+        isMaximized,
+        openWithBrowser,
+        show: showCfg,
+        urls,
+        index,
+      },
+    );
 
     const win = newInstance.getWin();
 
