@@ -2,7 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { ipcMain, Tray } from 'electron';
-import { TinyElectronRoot, TinyIpcResponder } from '../main/index.mjs';
+import { TinyElectronRoot } from '../main/index.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,6 +39,7 @@ root.on('Ready', () => {
   tray.setToolTip(root.getTitle());
   tray.setTitle(root.getTitle());
   root.registerTray('main', tray);
+  root.onTrayClick('main', () => console.log('Tray tiny click!'));
 });
 
 // Ready to first window
@@ -57,9 +58,10 @@ root.on('CreateFirstWindow', () => {
       height: 600,
       icon: root.getIcon(),
       webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
         nodeIntegration: true,
         contextIsolation: true,
-        preload: path.join(__dirname, 'preload.js'),
       },
     },
     fileId: initFile,

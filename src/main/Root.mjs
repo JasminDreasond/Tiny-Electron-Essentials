@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { EventEmitter } from 'events';
 import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray } from 'electron';
-import { release } from 'node:os';
+import { release, platform } from 'node:os';
+
 import { isJsonObject } from 'tiny-essentials';
 import { deepClone } from '../global/Utils.mjs';
 import TinyWinInstance from './WinInstance.mjs';
@@ -529,9 +530,10 @@ class TinyElectronRoot {
       throw new Error(`Invalid or missing icon folder: "${iconFolder}".`);
 
     // Determine correct extension based on OS
+    const osValue = platform();
     let extension = '.png';
-    if (process.platform === 'win32') extension = '.ico';
-    else if (process.platform === 'darwin') extension = '.icns';
+    if (osValue === 'win32') extension = '.ico';
+    else if (osValue === 'darwin') extension = '.icns';
 
     // Prevent directory traversal
     const normalizedFolder = path.resolve(iconFolder);
@@ -643,7 +645,7 @@ class TinyElectronRoot {
     const win = newInstance.getWin();
 
     // Insert app details
-    if (process.platform === 'win32') win.setAppDetails(appDetails);
+    if (platform() === 'win32') win.setAppDetails(appDetails);
 
     // Save custom minimizeOnClose (if any)
     if (!isMain && typeof minimizeOnClose === 'boolean')
@@ -694,6 +696,36 @@ class TinyElectronRoot {
       throw new Error(`[registerTray Error] Tray key "${key}" is already registered.`);
 
     this.#trays.set(key, tray);
+  }
+
+  /**
+   * Registers a tray click callback depending on the platform.
+   * On Linux and macOS, it listens to the `click` event.
+   * On Windows, it listens to the `double-click` event.
+   *
+   * @param {string} key - The identifier of the tray instance.
+   * @param {(event: Electron.KeyboardEvent, bounds: Electron.Rectangle) => void} callback - The callback function to invoke when the event occurs.
+   */
+  onTrayClick(key, callback) {
+    const tray = this.getTray(key);
+    const eventName = platform() === 'win32' ? 'double-click' : 'click';
+    // @ts-ignore
+    tray.on(eventName, callback);
+  }
+
+  /**
+   * Unregisters a previously registered tray click callback.
+   * On Linux and macOS, it removes the `click` event listener.
+   * On Windows, it removes the `double-click` event listener.
+   *
+   * @param {string} key - The identifier of the tray instance.
+   * @param {(event: Electron.KeyboardEvent, bounds: Electron.Rectangle) => void} callback - The callback function to remove.
+   */
+  offTrayClick(key, callback) {
+    const tray = this.getTray(key);
+    const eventName = platform() === 'win32' ? 'double-click' : 'click';
+    // @ts-ignore
+    tray.off(eventName, callback);
   }
 
   /**
@@ -882,7 +914,7 @@ class TinyElectronRoot {
     this.#icon = icon;
 
     // Set application name for Windows 10+ notifications
-    if (process.platform === 'win32') app.setAppUserModelId(name);
+    if (platform() === 'win32') app.setAppUserModelId(name);
 
     app.on('will-quit', () => {
       this.#win = null;
