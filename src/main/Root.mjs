@@ -678,6 +678,32 @@ class TinyElectronRoot {
   }
 
   /**
+   * Destroys a specific window by key or the main window if no key is provided.
+   *
+   * This will fully close and remove the associated BrowserWindow and clean up its references.
+   * If the window is the main one, it clears the internal main reference. If it’s a secondary
+   * window, it is removed from the internal map.
+   *
+   * @param {string|number} [key] - Optional key to target a secondary window. If omitted, the main window is destroyed.
+   * @throws {Error} If no main window exists or no matching window instance is found.
+   */
+  destroyWindow(key) {
+    const instance = this.getWinInstance(key);
+    const win = instance.getWin();
+
+    // Destroy the native window if not already
+    if (!win.isDestroyed()) win.destroy();
+
+    // Clear internal references
+    if (typeof key === 'undefined') {
+      this.#win = null;
+    } else {
+      this.#wins.delete(key);
+      this.#winMinimizeOnClose.delete(Number(key));
+    }
+  }
+
+  /**
    * Registers an existing Electron Tray instance under a given key.
    *
    * This method does not create a new tray. It simply stores a reference
