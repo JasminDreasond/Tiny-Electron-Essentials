@@ -40,9 +40,29 @@ class TinyIpcRequestManager {
   /** @type {Map<string, RequestData>} */
   #pending = new Map();
 
-  constructor() {
+  /** @type {string} */
+  #responseChannel;
+
+  /**
+   * Returns the channel name used to listen for responses.
+   * @returns {string}
+   */
+  getResponseChannel() {
+    return this.#responseChannel;
+  }
+
+  /**
+   * @param {string} [responseChannel='ipc-response'] - Custom channel name for receiving responses.
+   * @throws {Error} If the provided responseChannel is not a non-empty string.
+   */
+  constructor(responseChannel = 'ipc-response') {
+    if (typeof responseChannel !== 'string' || responseChannel.trim() === '')
+      throw new Error('IPC constructor error: "responseChannel" must be a non-empty string');
+
+    this.#responseChannel = responseChannel;
+
     /** @type {(event: IpcMainEvent, arg: SendResult) => void} */
-    ipcRenderer.on('ipc-response', (_event, data) => {
+    ipcRenderer.on(this.#responseChannel, (_event, data) => {
       const { __requestId, payload, error } = data || {};
       const item = this.#pending.get(__requestId);
       if (item) {

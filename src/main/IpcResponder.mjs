@@ -27,6 +27,28 @@ class TinyIpcResponder {
   /** @type {Map<string, EventEmit>} */
   #handlers = new Map();
 
+  /** @type {string} */
+  #responseChannel;
+
+  /**
+   * Returns the channel name used to listen for responses.
+   * @returns {string}
+   */
+  getResponseChannel() {
+    return this.#responseChannel;
+  }
+
+  /**
+   * @param {string} [responseChannel='ipc-response'] - Custom response channel name.
+   * @throws {TypeError} If `responseChannel` is not a valid non-empty string.
+   */
+  constructor(responseChannel = 'ipc-response') {
+    if (typeof responseChannel !== 'string' || responseChannel.trim() === '')
+      throw new TypeError('Expected "responseChannel" to be a non-empty string.');
+
+    this.#responseChannel = responseChannel;
+  }
+
   /**
    * Register a channel listener that can use requestId to respond.
    *
@@ -59,7 +81,7 @@ class TinyIpcResponder {
           error: error ? serializeError(error) : null,
         };
 
-        event.sender.send('ipc-response', result);
+        event.sender.send(this.#responseChannel, result);
       };
 
       handler(payload, respond, event);
