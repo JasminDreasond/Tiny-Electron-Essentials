@@ -1,7 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { ipcMain } from 'electron';
+import { ipcMain, Tray } from 'electron';
 import { TinyElectronRoot, TinyIpcResponder } from '../main/index.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,11 +26,20 @@ root.installWinProtection();
 // Init appData
 root.initAppDataDir();
 root.initAppDataSubdir('tiny-test');
-
-console.log(root.getAppDataDir());
 const appDataPrivate = root.getAppDataSubdir('tiny-test');
 const initFile = path.join(appDataPrivate, 'init.json');
+
+console.log(root.getAppDataDir());
+console.log(appDataPrivate);
 console.log(initFile);
+
+// Tray
+root.on('Ready', () => {
+  const tray = new Tray(root.getIcon());
+  tray.setToolTip(root.getTitle());
+  tray.setTitle(root.getTitle());
+  root.registerTray('main', tray);
+});
 
 // Ready to first window
 root.on('CreateFirstWindow', () => {
@@ -49,7 +58,6 @@ root.on('CreateFirstWindow', () => {
     config: {
       width: 800,
       height: 600,
-      show: true,
       icon: root.getIcon(),
       webPreferences: {
         nodeIntegration: true,
