@@ -1,3 +1,4 @@
+import { ipcRenderer } from 'electron';
 import TinyIpcRequestManager from './IpcRequestManager.mjs';
 
 class TinyElectronClient {
@@ -20,6 +21,10 @@ class TinyElectronClient {
    */
   constructor({ ipcReceiverChannel } = {}) {
     this.#ipcRequest = new TinyIpcRequestManager(ipcReceiverChannel);
+
+    ipcRenderer.on('console-message', (event, msg, msg2) => {
+      console.log(msg, msg2);
+    });
   }
 }
 

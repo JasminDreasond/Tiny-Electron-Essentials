@@ -350,7 +350,7 @@ class TinyElectronRoot {
       return null;
     };
 
-    ipcMain.on('openDevTools', (event) => {
+    ipcMain.on('open-devtools', (event) => {
       const win = getWin(event);
       if (win) this.openDevTools(win);
     });
@@ -399,23 +399,23 @@ class TinyElectronRoot {
         }, 200);
     });
 
-    ipcMain.on('systemIdleTime', (event) => {
+    ipcMain.on('system-idle-time', (event) => {
       const win = getWin(event);
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleTime();
-        win.webContents.send('systemIdleTime', idleSecs);
+        win.webContents.send('system-idle-time', idleSecs);
       }
     });
 
-    ipcMain.on('systemIdleState', (event, value) => {
+    ipcMain.on('system-idle-state', (event, value) => {
       const win = getWin(event);
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleState(value);
-        win.webContents.send('systemIdleState', idleSecs);
+        win.webContents.send('system-idle-state', idleSecs);
       }
     });
 
-    ipcMain.on('toggleVisible', (event, isVisible) => {
+    ipcMain.on('toggle-visible', (event, isVisible) => {
       const win = getWinInstance(event);
       if (win) win.toggleVisible(isVisible === true);
     });
