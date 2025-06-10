@@ -7,6 +7,7 @@ import { isJsonObject } from 'tiny-essentials';
 import { deepClone } from '../global/Utils.mjs';
 import TinyWinInstance from './WinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
+import TinyIpcResponder from './IpcResponder.mjs';
 
 // Remove electron security warnings
 // This warning only shows in development mode
@@ -256,6 +257,9 @@ class TinyElectronRoot {
   #openWithBrowser;
 
   #appDataName;
+
+  /** @type {TinyIpcResponder} */
+  #ipcResponder;
 
   /** @type {Record<string, string>} */
   #appDataStarted = {};
@@ -554,6 +558,14 @@ class TinyElectronRoot {
   }
 
   /**
+   * Returns the internal TinyIpcResponder instance.
+   * @returns {TinyIpcResponder}
+   */
+  getIpcResponder() {
+    return this.#ipcResponder;
+  }
+
+  /**
    * Creates a new Electron BrowserWindow and tracks it as a main or secondary window.
    *
    * If marked as the main window, it will be assigned to `#win`. Otherwise, it's stored
@@ -786,6 +798,7 @@ class TinyElectronRoot {
    * - When a second instance is started, it focuses the existing window instead of launching a new one.
    *
    * @param {Object} [settings={}] - Configuration settings for the application.
+   * @param {string} [settings.ipcResponseChannel] - Custom ipc response channel name of TinyIpcResponder instance.
    * @param {boolean} [settings.openWithBrowser=true] - Whether to allow fallback opening in the system browser.
    * @param {string} [settings.urlBase=''] - The base URL for loading content if using remote sources.
    * @param {string} [settings.pathBase] - The local path used for loading static files if not using a URL.
@@ -800,6 +813,7 @@ class TinyElectronRoot {
    * @throws {Error} If any required string values are missing or invalid.
    */
   constructor({
+    ipcResponseChannel,
     openWithBrowser = true,
     name = app.getName(),
     urlBase = '',
@@ -857,6 +871,7 @@ class TinyElectronRoot {
         'Expected "openWithBrowser" to be a boolean. Provide a valid application openWithBrowser.',
       );
 
+    this.#ipcResponder = new TinyIpcResponder(ipcResponseChannel);
     this.#minimizeOnClose = minimizeOnClose;
     this.#appDataName = appDataName;
     this.#openWithBrowser = openWithBrowser;

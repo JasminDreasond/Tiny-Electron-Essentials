@@ -7,8 +7,6 @@ import { TinyElectronRoot, TinyIpcResponder } from '../main/index.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const responder = new TinyIpcResponder();
-
 // Start Electron root
 const root = new TinyElectronRoot({
   minimizeOnClose: false,
@@ -19,6 +17,8 @@ const root = new TinyElectronRoot({
   appDataName: 'tiny-electron-essentials',
   title: 'Tiny Electron Essentials',
 });
+
+const responder = root.getIpcResponder();
 
 // Fix windows OS
 root.installWinProtection();
