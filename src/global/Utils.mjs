@@ -58,3 +58,26 @@ export function deserializeError(json) {
   if (json.data !== undefined) error.data = json.data;
   return error;
 }
+
+/**
+ * @param {*} obj
+ * @returns {*}
+ */
+export function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+
+  if (obj instanceof Date) return new Date(obj);
+  if (obj instanceof Array) return obj.map(deepClone);
+  if (obj instanceof Object) {
+    const copy = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        // @ts-ignore
+        copy[key] = deepClone(obj[key]);
+      }
+    }
+    return copy;
+  }
+
+  throw new Error('Unsupported type');
+}

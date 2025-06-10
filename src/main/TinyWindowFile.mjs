@@ -2,13 +2,13 @@ import fs from 'fs';
 import { isJsonObject } from 'tiny-essentials';
 
 /**
- * @typedef {{ width: number; height: number }} Bounds
- * An object representing the size of a window.
+ * @typedef {{ width: number; height: number; x?: number; y?: number; }} Bounds
+ * An object representing the size and position of a window.
  */
 
 /**
- * @typedef {{ bounds?: Bounds }} InitConfig
- * Optional configuration used to initialize a window entry.
+ * @typedef {{ bounds?: Bounds; maximized?: boolean }} InitConfig
+ * Configuration used to initialize a window, including size and state.
  */
 
 class TinyWindowFile {
@@ -21,41 +21,45 @@ class TinyWindowFile {
   /**
    * Loads window configuration from a file and stores it internally.
    *
-   * @param {string} initFile - The path to the JSON file containing window bounds.
-   * @param {Object} [settings={}] - Optional settings to use if the file has no valid bounds.
-   * @param {Bounds} [settings.bounds={ width: 1200, height: 700 }] - Default bounds if file has none.
+   * @param {string} initFile - The path to the JSON file containing window data.
+   * @param {Object} [settings={}] - Optional fallback settings.
+   * @param {Bounds} [settings.bounds={ width: 1200, height: 700 }] - Default bounds.
    * @throws {TypeError} If `initFile` is not a string.
-   * @throws {TypeError} If `settings.bounds` is not a valid Bounds object.
+   * @throws {TypeError} If `settings.bounds` is invalid.
    */
   loadFile(initFile, { bounds = { width: 1200, height: 700 } } = {}) {
     if (typeof initFile !== 'string') throw new TypeError('Expected "initFile" to be a string.');
 
+    if (!isJsonObject(bounds)) throw new TypeError('Expected "bounds" to be an object.');
+    if (typeof bounds.width !== 'number' || typeof bounds.height !== 'number')
+      throw new TypeError('Expected "bounds" with numeric width and height.');
     if (
-      !isJsonObject(bounds) ||
-      typeof bounds.width !== 'number' ||
-      typeof bounds.height !== 'number'
+      (typeof bounds.x !== 'undefined' && typeof bounds.x !== 'number') ||
+      (typeof bounds.y !== 'undefined' && typeof bounds.y !== 'number')
     )
-      throw new TypeError('Expected "bounds" to be an object with numeric width and height.');
+      throw new TypeError('Expected "bounds" with numeric x and y.');
 
-    /** @type {null|InitConfig} */
-    let data = null;
+    /** @type {InitConfig} */
+    let data = {};
     try {
-      data = JSON.parse(fs.readFileSync(initFile, 'utf8'));
-      if (!isJsonObject(data)) data = {};
+      const raw = JSON.parse(fs.readFileSync(initFile, 'utf8'));
+      if (isJsonObject(raw)) data = raw;
     } catch {
       data = {};
     }
 
-    // Bounds
-    const dBounds =
-      isJsonObject(data.bounds) &&
-      typeof data.bounds.width === 'number' &&
-      typeof data.bounds.height === 'number'
-        ? { width: data.bounds.width, height: data.bounds.height }
-        : bounds;
+    const rawBounds = isJsonObject(data.bounds) ? data.bounds : bounds;
+    const finalBounds = {
+      width: typeof rawBounds.width === 'number' ? rawBounds.width : bounds.width,
+      height: typeof rawBounds.height === 'number' ? rawBounds.height : bounds.height,
+      ...(typeof rawBounds.x === 'number' ? { x: rawBounds.x } : {}),
+      ...(typeof rawBounds.y === 'number' ? { y: rawBounds.y } : {}),
+    };
 
-    this.#bounds[initFile] = dBounds;
-    this.#ids[initFile] = { bounds: dBounds };
+    const maximized = typeof data.maximized === 'boolean' ? data.maximized : false;
+
+    this.#bounds[initFile] = finalBounds;
+    this.#ids[initFile] = { bounds: finalBounds, maximized };
   }
 
   /**
@@ -68,10 +72,12 @@ class TinyWindowFile {
    */
   getData(id) {
     if (typeof id !== 'string') throw new TypeError('Expected "id" to be a string.');
-    if (!this.hasIndex(id)) throw new Error(`No configuration found for id "${id}".`);
+    if (!this.hasId(id)) throw new Error(`No configuration found for id "${id}".`);
 
+    const stored = this.#ids[id];
     return {
-      bounds: this.getBounds(id),
+      bounds: stored.bounds ? { ...stored.bounds } : undefined,
+      maximized: stored.maximized ?? false,
     };
   }
 
@@ -82,7 +88,7 @@ class TinyWindowFile {
    * @returns {boolean} True if a config exists, false otherwise.
    * @throws {TypeError} If `id` is not a string.
    */
-  hasIndex(id) {
+  hasId(id) {
     if (typeof id !== 'string') throw new TypeError('Expected "id" to be a string.');
     return !!this.#ids[id];
   }
@@ -97,10 +103,8 @@ class TinyWindowFile {
    */
   getBounds(id) {
     if (typeof id !== 'string') throw new TypeError('Expected "id" to be a string.');
-
     const bounds = this.#bounds[id];
     if (!bounds) throw new Error(`No bounds found for id "${id}".`);
-
     return { ...bounds };
   }
 }

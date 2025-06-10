@@ -109,24 +109,34 @@ class TinyWinInstance {
    * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
    * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
    * @param {string|number} [settings.index] - (Optional) Index of the window in the manager.
+   * @param {boolean} [settings.isMaximized=false] - The window will try to be maximized by booting.
    * @param {boolean} [settings.openWithBrowser=true] - if you will make all links open with the browser, not with the application.
-   * @param {boolean} [settings.autoShow=true] - The window will appear when the load is finished.
+   * @param {boolean} [settings.show] - The window will appear when the load is finished.
    * @param {string[]} [settings.urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
    * @throws {Error} If any parameter is invalid.
    */
   constructor(
     emit,
-    { config, index, openWithBrowser = true, autoShow = true, urls = ['https:', 'http:'] } = {},
+    {
+      config,
+      index,
+      show,
+      isMaximized = false,
+      openWithBrowser = true,
+      urls = ['https:', 'http:'],
+    } = {},
   ) {
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
     if (!isJsonObject(config))
       throw new Error('[Window Creation Error] Expected "config" to be an object.');
 
+    if (typeof isMaximized !== 'boolean')
+      throw new Error('[Window Creation Error] Expected "isMaximized" to be an boolean.');
     if (typeof openWithBrowser !== 'boolean')
       throw new Error('[Window Creation Error] Expected "openWithBrowser" to be an boolean.');
-    if (typeof autoShow !== 'boolean')
-      throw new Error('[Window Creation Error] Expected "autoShow" to be an boolean.');
+    if (typeof show !== 'boolean')
+      throw new Error('[Window Creation Error] Expected "show" to be an boolean.');
 
     if (!Array.isArray(urls))
       throw new Error('[Window Creation Error] Expected an url list of strings.');
@@ -144,6 +154,7 @@ class TinyWinInstance {
     this.#win = new BrowserWindow(config);
     this.#emit = emit;
     this.#index = index || null;
+    this.#visible = show;
 
     // Make all links open with the browser, not with the application
     if (openWithBrowser)
@@ -162,7 +173,8 @@ class TinyWinInstance {
     // Show Page
     this.#win.once('ready-to-show', (...args) => {
       this.#ready = true;
-      if (autoShow) this.toggleVisible(true);
+      this.toggleVisible(show);
+      if (isMaximized && show) this.#win.maximize();
       this.#emit('ReadyToShow', this.#index, ...args);
     });
 

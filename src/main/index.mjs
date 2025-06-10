@@ -1,4 +1,5 @@
 import TinyIpcResponder from './IpcResponder.mjs';
 import TinyElectronRoot from './Root.mjs';
+import TinyWindowFile from './TinyWindowFile.mjs';
 
-export { TinyIpcResponder, TinyElectronRoot };
+export { TinyIpcResponder, TinyElectronRoot, TinyWindowFile };

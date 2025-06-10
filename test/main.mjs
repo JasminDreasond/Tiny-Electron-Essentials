@@ -9,6 +9,7 @@ const __dirname = dirname(__filename);
 
 const responder = new TinyIpcResponder();
 
+// Start Electron root
 const root = new TinyElectronRoot({
   minimizeOnClose: false,
   pathBase: path.join(__dirname, 'renderer'),
@@ -19,8 +20,19 @@ const root = new TinyElectronRoot({
   title: 'Tiny Electron Essentials',
 });
 
+// Fix windows OS
 root.installWinProtection();
 
+// Init appData
+root.initAppDataDir();
+root.initAppDataSubdir('tiny-test');
+
+console.log(root.getAppDataDir());
+const appDataPrivate = root.getAppDataSubdir('tiny-test');
+const initFile = path.join(appDataPrivate, 'init.json');
+console.log(initFile);
+
+// Ready to first window
 root.on('CreateFirstWindow', () => {
   console.log(`gotTheLock: ${root.gotTheLock()}`);
   console.log(`getAppId: ${root.getAppId()}`);
@@ -37,6 +49,7 @@ root.on('CreateFirstWindow', () => {
     config: {
       width: 800,
       height: 600,
+      show: true,
       icon: root.getIcon(),
       webPreferences: {
         nodeIntegration: true,
@@ -44,6 +57,7 @@ root.on('CreateFirstWindow', () => {
         preload: path.join(__dirname, 'preload.js'),
       },
     },
+    fileId: initFile,
     isMain: true,
   });
 
@@ -62,8 +76,10 @@ root.on('CreateFirstWindow', () => {
   root.openDevTools(win, { mode: 'detach' }); // ou 'bottom', 'right', etc.
 });
 
+// Ping
 ipcMain.handle('ping', async () => {
   return 'pong from main process';
 });
 
+// Init app
 root.init();

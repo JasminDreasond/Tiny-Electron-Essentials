@@ -4,6 +4,7 @@ import { EventEmitter } from 'events';
 import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray } from 'electron';
 import { release } from 'node:os';
 import { isJsonObject } from 'tiny-essentials';
+import { deepClone } from '../global/Utils.mjs';
 import TinyWinInstance from './WinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
 
@@ -12,15 +13,18 @@ import TinyWindowFile from './TinyWindowFile.mjs';
 // Read more on https://www.electronjs.org/docs/latest/tutorial/security
 // process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
+/** @typedef {import('./TinyWindowFile.mjs').InitConfig} WinInitFile */
+
 /**
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
  * @property {Electron.BrowserWindowConstructorOptions} [config] - Configuration for the new BrowserWindow.
  * @property {Electron.AppDetailsOptions} [appDetails={ appId: this.getAppId(), appIconPath: this.getIcon(), relaunchDisplayName: this.getTitle() }] - Configuration for the browser app details.
  * @property {boolean} [openWithBrowser=this.#openWithBrowser] - If you will make all links open with the browser, not with the application.
- * @property {boolean} [autoShow=true] - The window will appear when the load is finished.
+ * @property {boolean} [show=true] - The window will appear when the load is finished.
  * @property {string} [fileId] - (Optional) Id file of the window in the manager.
  * @property {string[]} [urls=['https:', 'http:']] - List of allowed URL protocols to permit external opening.
  * @property {boolean} [isMain=false] - Whether this window is the main application window.
+ * @property {boolean} [needsMaximize=true] - It is necessary to make auto maximize on startup.
  * @property {boolean} [minimizeOnClose] - Overrides the default behavior to minimize the window instead of closing it. Falls back to `this.getMinimizeOnClose()` if not provided.
  */
 
@@ -563,6 +567,7 @@ class TinyElectronRoot {
   createWindow({
     config,
     fileId,
+    show,
     minimizeOnClose,
     appDetails = {
       appId: this.getAppId(),
@@ -571,22 +576,47 @@ class TinyElectronRoot {
     },
     urls = ['https:', 'http:'],
     openWithBrowser = this.#openWithBrowser,
-    autoShow = true,
+    needsMaximize = true,
     isMain = false,
   } = {}) {
     // Validate input
     if (!isJsonObject(appDetails)) throw new TypeError('Expected "appDetails" to be a object.');
     if (typeof isMain !== 'boolean') throw new TypeError('Expected "isMain" to be a boolean.');
+    if (typeof needsMaximize !== 'boolean')
+      throw new TypeError('Expected "needsMaximize" to be a boolean.');
     if (isMain && this.#win) throw new Error('Main window already exists. Cannot create another.');
     if (minimizeOnClose !== undefined && typeof minimizeOnClose !== 'boolean')
       throw new TypeError('Expected "minimizeOnClose" to be a boolean if defined.');
 
     // New instance
     const index = this.#winIds++;
+    let showCfg = show;
+
+    let isMaximized = false;
+    let cfg;
+    if (typeof fileId === 'string' && !this.#winFile.hasId(fileId)) this.#winFile.loadFile(fileId);
+    if (typeof fileId === 'string') {
+      if (!isJsonObject(config))
+        throw new Error('[Window Creation Error] Expected "config" to be an object.');
+
+      cfg = deepClone(config);
+      const winData = this.#winFile.getData(fileId);
+      if (typeof winData.bounds?.height === 'number') cfg.height = winData.bounds.height;
+      if (typeof winData.bounds?.width === 'number') cfg.width = winData.bounds.width;
+      if (typeof winData.bounds?.y === 'number') cfg.y = winData.bounds.y;
+      if (typeof winData.bounds?.x === 'number') cfg.x = winData.bounds.x;
+      if (needsMaximize && typeof winData.maximized === 'boolean') isMaximized = winData.maximized;
+    }
+
+    if (typeof show === 'undefined' && typeof cfg.show === 'boolean') showCfg = cfg.show;
+    if (typeof showCfg === 'undefined') showCfg = true;
+    cfg.show = false;
+
     const newInstance = new TinyWinInstance((event, ...args) => this.emit(event, ...args), {
-      config,
+      config: cfg,
+      isMaximized,
       openWithBrowser,
-      autoShow,
+      show: showCfg,
       urls,
       index,
     });
@@ -603,7 +633,11 @@ class TinyElectronRoot {
     win.on('close', (event) => {
       // Save window cache
       if (typeof fileId === 'string') {
-        const winData = this.#winFile.getData(fileId);
+        /** @type {WinInitFile} */
+        const winData = {
+          bounds: win.getBounds(),
+          maximized: win.isMaximized(),
+        };
         fs.writeFileSync(fileId, JSON.stringify(winData));
       }
 
