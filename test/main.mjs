@@ -63,8 +63,9 @@ root.on('CreateFirstWindow', () => {
       },
     },
     fileId: initFile,
-    isMain: true,
   });
+
+  console.log(`Instance index: ${instance.getIndex()}`);
 
   responder.on('get-user-data', async (payload, respond) => {
     try {

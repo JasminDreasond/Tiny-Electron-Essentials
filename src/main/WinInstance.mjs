@@ -197,7 +197,7 @@ class TinyWinInstance {
     this.#emit = emit;
     this.#openDevTools = openDevTools;
     this.#loadPath = loadPath;
-    this.#index = index || null;
+    this.#index = typeof index === 'number' || typeof index === 'string' ? index : null;
     this.#visible = show;
 
     // Make all links open with the browser, not with the application

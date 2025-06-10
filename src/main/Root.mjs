@@ -244,7 +244,7 @@ class TinyElectronRoot {
   #appReady = false;
   #isQuiting = false;
   #minimizeOnClose = false;
-  #winIds = -1;
+  #winIds = 0;
 
   #appId;
   #title;
