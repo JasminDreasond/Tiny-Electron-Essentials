@@ -1,4 +1,4 @@
-import { BrowserWindow, shell, ipcMain } from 'electron';
+import { BrowserWindow, shell } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
 
 /**
