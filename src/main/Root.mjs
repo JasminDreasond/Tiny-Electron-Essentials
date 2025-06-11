@@ -30,7 +30,59 @@ import TinyIpcResponder from './IpcResponder.mjs';
  * @property {boolean} [minimizeOnClose] - Overrides the default behavior to minimize the window instead of closing it. Falls back to `this.getMinimizeOnClose()` if not provided.
  */
 
+/**
+ * A map of internal IPC event names used throughout the application to trigger various
+ * window and system-level actions.
+ *
+ * @typedef {Object} AppEvents
+ * @property {string} OpenDevTools        - Opens the developer tools in the application window.
+ * @property {string} SetTitle            - Sets the title of the application window.
+ * @property {string} FocusWindow         - Brings the application window to the foreground.
+ * @property {string} BlurWindow          - Removes focus from the application window.
+ * @property {string} ShowWindow          - Makes the application window visible if hidden.
+ * @property {string} ForceFocusWindow    - Forces the application window to gain focus, even if not focused normally.
+ * @property {string} SystemIdleTime      - Requests the amount of time (in ms) the system has been idle.
+ * @property {string} SystemIdleState     - Requests the current idle state of the system (active, idle, locked, etc.).
+ * @property {string} ToggleVisible       - Toggles visibility of the application window.
+ * @property {string} AppQuit             - Quits the application gracefully.
+ * @property {string} SetProxy            - Sets a custom network proxy for the application.
+ * @property {string} SetProxyError       - Triggered when setting the proxy fails.
+ * @property {string} WindowIsMaximized   - Asks whether the window is currently maximized.
+ * @property {string} WindowMaximize      - Maximizes the application window.
+ * @property {string} WindowUnmaximize    - Restores the window from maximized to normal size.
+ * @property {string} WindowMinimize      - Minimizes the application window to the taskbar or dock.
+ * @property {string} WindowHide          - Hides the application window from view.
+ * @property {string} WindowShow          - Shows the application window if hidden.
+ * @property {string} ChangeAppIcon       - Changes the icon of the application window.
+ * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application.
+ * @property {string} ConsoleMessage      - Sends a message to be printed in the window process console.
+ */
+
 class TinyElectronRoot {
+  #AppEvents = {
+    OpenDevTools: 'open-devtools',
+    SetTitle: 'set-title',
+    FocusWindow: 'tiny-focus-window',
+    BlurWindow: 'tiny-blur-window',
+    ShowWindow: 'tiny-show-window',
+    ForceFocusWindow: 'tiny-force-focus-window',
+    SystemIdleTime: 'system-idle-time',
+    SystemIdleState: 'system-idle-state',
+    ToggleVisible: 'toggle-visible',
+    AppQuit: 'app-quit',
+    SetProxy: 'set-proxy',
+    SetProxyError: 'set-proxy-error',
+    WindowIsMaximized: 'window-is-maximized',
+    WindowMaximize: 'window-maximize',
+    WindowUnmaximize: 'window-unmaximize',
+    WindowMinimize: 'window-minimize',
+    WindowHide: 'window-hide',
+    WindowShow: 'window-show',
+    ChangeAppIcon: 'change-app-icon',
+    ChangeTrayIcon: 'change-tray-icon',
+    ConsoleMessage: 'console-message',
+  };
+
   #winFile = new TinyWindowFile();
 
   /**
@@ -350,17 +402,17 @@ class TinyElectronRoot {
       return null;
     };
 
-    ipcMain.on('open-devtools', (event) => {
+    ipcMain.on(this.#AppEvents.OpenDevTools, (event) => {
       const win = getWin(event);
       if (win) this.openDevTools(win);
     });
 
-    ipcMain.on('set-title', (event, title) => {
+    ipcMain.on(this.#AppEvents.SetTitle, (event, title) => {
       const win = getWin(event);
       if (win) win.setTitle(title);
     });
 
-    ipcMain.on('tiny-focus-window', (event) => {
+    ipcMain.on(this.#AppEvents.FocusWindow, (event) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
@@ -369,7 +421,7 @@ class TinyElectronRoot {
         }, 200);
     });
 
-    ipcMain.on('tiny-blur-window', (event) => {
+    ipcMain.on(this.#AppEvents.BlurWindow, (event) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
@@ -378,7 +430,7 @@ class TinyElectronRoot {
         }, 200);
     });
 
-    ipcMain.on('tiny-show-window', (event) => {
+    ipcMain.on(this.#AppEvents.ShowWindow, (event) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
@@ -387,7 +439,7 @@ class TinyElectronRoot {
         }, 200);
     });
 
-    ipcMain.on('tiny-force-focus-window', (event) => {
+    ipcMain.on(this.#AppEvents.ForceFocusWindow, (event) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
@@ -399,44 +451,44 @@ class TinyElectronRoot {
         }, 200);
     });
 
-    ipcMain.on('system-idle-time', (event) => {
+    ipcMain.on(this.#AppEvents.SystemIdleTime, (event) => {
       const win = getWin(event);
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleTime();
-        win.webContents.send('system-idle-time', idleSecs);
+        win.webContents.send(this.#AppEvents.SystemIdleTime, idleSecs);
       }
     });
 
-    ipcMain.on('system-idle-state', (event, value) => {
+    ipcMain.on(this.#AppEvents.SystemIdleState, (event, value) => {
       const win = getWin(event);
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleState(value);
-        win.webContents.send('system-idle-state', idleSecs);
+        win.webContents.send(this.#AppEvents.SystemIdleState, idleSecs);
       }
     });
 
-    ipcMain.on('toggle-visible', (event, isVisible) => {
+    ipcMain.on(this.#AppEvents.ToggleVisible, (event, isVisible) => {
       const win = getWinInstance(event);
       if (win) win.toggleVisible(isVisible === true);
     });
 
-    ipcMain.on('app-quit', () => this.quit());
+    ipcMain.on(this.#AppEvents.AppQuit, () => this.quit());
 
     /**
      * Set proxy
      * @type {(event: Electron.IpcMainEvent, config: Electron.ProxyConfig) => void}
      */
-    ipcMain.on('set-proxy', (event, config) => {
+    ipcMain.on(this.#AppEvents.SetProxy, (event, config) => {
       const win = getWin(event);
       if (win && win.webContents) {
         win.webContents.session
           .setProxy(config)
           .then((result) => {
-            if (win && win.webContents) win.webContents.send('set-proxy', result);
+            if (win && win.webContents) win.webContents.send(this.#AppEvents.SetProxy, result);
           })
           .catch((err) => {
             if (win && win.webContents)
-              win.webContents.send('set-proxy-error', {
+              win.webContents.send(this.#AppEvents.SetProxyError, {
                 code: err.code,
                 message: err.message,
                 cause: err.cause,
@@ -447,35 +499,40 @@ class TinyElectronRoot {
     });
 
     // Window status
-    ipcMain.on('window-is-maximized', (event) => {
+    ipcMain.on(this.#AppEvents.WindowIsMaximized, (event) => {
       const win = getWin(event);
       if (win && win.webContents) {
-        win.webContents.send('window-is-maximized', win.isMaximized());
+        win.webContents.send(this.#AppEvents.WindowIsMaximized, win.isMaximized());
       }
     });
 
-    ipcMain.on('window-maximize', (event) => {
+    ipcMain.on(this.#AppEvents.WindowMaximize, (event) => {
       const win = getWin(event);
       if (win) win.maximize();
     });
 
-    ipcMain.on('window-unmaximize', (event) => {
+    ipcMain.on(this.#AppEvents.WindowUnmaximize, (event) => {
       const win = getWin(event);
       if (win) win.unmaximize();
     });
 
-    ipcMain.on('window-minimize', (event) => {
+    ipcMain.on(this.#AppEvents.WindowMinimize, (event) => {
       const win = getWin(event);
       if (win) win.minimize();
     });
 
-    ipcMain.on('window-hide', (event) => {
+    ipcMain.on(this.#AppEvents.WindowHide, (event) => {
       const win = getWinInstance(event);
       if (win) win.toggleVisible(false);
     });
 
+    ipcMain.on(this.#AppEvents.WindowShow, (event) => {
+      const win = getWinInstance(event);
+      if (win) win.toggleVisible(true);
+    });
+
     // Icons
-    ipcMain.on('change-app-icon', (event, img) => {
+    ipcMain.on(this.#AppEvents.ChangeAppIcon, (event, img) => {
       const win = getWin(event);
       try {
         if (typeof img === 'string' && img.length > 0) {
@@ -486,7 +543,7 @@ class TinyElectronRoot {
       }
     });
 
-    ipcMain.on('change-tray-icon', (event, img, key) => {
+    ipcMain.on(this.#AppEvents.ChangeTrayIcon, (event, img, key) => {
       try {
         if (
           typeof img === 'string' &&
@@ -856,6 +913,7 @@ class TinyElectronRoot {
    * - When a second instance is started, it focuses the existing window instead of launching a new one.
    *
    * @param {Object} [settings={}] - Configuration settings for the application.
+   * @param {AppEvents} [settings.eventNames=this.#AppEvents] - Set of event names for internal messaging.
    * @param {string} [settings.ipcResponseChannel] - Custom ipc response channel name of TinyIpcResponder instance.
    * @param {boolean} [settings.openWithBrowser=true] - Whether to allow fallback opening in the system browser.
    * @param {string} [settings.urlBase=''] - The base URL for loading content if using remote sources.
@@ -871,6 +929,7 @@ class TinyElectronRoot {
    * @throws {Error} If any required string values are missing or invalid.
    */
   constructor({
+    eventNames = { ...this.#AppEvents },
     ipcResponseChannel,
     openWithBrowser = true,
     name = app.getName(),
@@ -883,6 +942,23 @@ class TinyElectronRoot {
     appDataName,
     minimizeOnClose = false,
   } = {}) {
+    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
+    for (const key in this.#AppEvents) {
+      // @ts-ignore
+      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
+        throw new Error(
+          // @ts-ignore
+          `[#Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
+        );
+    }
+
+    for (const key in eventNames) {
+      // @ts-ignore
+      if (typeof eventNames[key] === 'string')
+        // @ts-ignore
+        this.#AppEvents[key] = eventNames[key];
+    }
+
     if (typeof urlBase !== 'string')
       throw new TypeError(
         'Expected "urlBase" to be a string. Provide a valid application urlBase.',
@@ -1388,7 +1464,11 @@ class TinyElectronRoot {
   openDevTools(win, ops) {
     this.#isBrowserWindow(win);
     win.webContents.openDevTools(ops);
-    win.webContents.send('console-message', this.#consoleOpenWarn[0], this.#consoleOpenWarn[1]);
+    win.webContents.send(
+      this.#AppEvents.ConsoleMessage,
+      this.#consoleOpenWarn[0],
+      this.#consoleOpenWarn[1],
+    );
   }
 
   /**
