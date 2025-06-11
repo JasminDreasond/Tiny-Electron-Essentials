@@ -1,0 +1,51 @@
+/**
+ * A map of internal IPC event names used throughout the application to trigger various
+ * window and system-level actions.
+ *
+ * @typedef {Object} AppEvents
+ * @property {string} OpenDevTools        - Opens the developer tools in the application window.
+ * @property {string} SetTitle            - Sets the title of the application window.
+ * @property {string} FocusWindow         - Brings the application window to the foreground.
+ * @property {string} BlurWindow          - Removes focus from the application window.
+ * @property {string} ShowWindow          - Makes the application window visible if hidden.
+ * @property {string} ForceFocusWindow    - Forces the application window to gain focus, even if not focused normally.
+ * @property {string} SystemIdleTime      - Requests the amount of time (in ms) the system has been idle.
+ * @property {string} SystemIdleState     - Requests the current idle state of the system (active, idle, locked, etc.).
+ * @property {string} ToggleVisible       - Toggles visibility of the application window.
+ * @property {string} AppQuit             - Quits the application gracefully.
+ * @property {string} SetProxy            - Sets a custom network proxy for the application.
+ * @property {string} SetProxyError       - Triggered when setting the proxy fails.
+ * @property {string} WindowIsMaximized   - Asks whether the window is currently maximized.
+ * @property {string} WindowMaximize      - Maximizes the application window.
+ * @property {string} WindowUnmaximize    - Restores the window from maximized to normal size.
+ * @property {string} WindowMinimize      - Minimizes the application window to the taskbar or dock.
+ * @property {string} WindowHide          - Hides the application window from view.
+ * @property {string} WindowShow          - Shows the application window if hidden.
+ * @property {string} ChangeAppIcon       - Changes the icon of the application window.
+ * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application.
+ * @property {string} ConsoleMessage      - Sends a message to be printed in the window process console.
+ */
+
+export const AppEvents = {
+  OpenDevTools: 'open-devtools',
+  SetTitle: 'set-title',
+  FocusWindow: 'tiny-focus-window',
+  BlurWindow: 'tiny-blur-window',
+  ShowWindow: 'tiny-show-window',
+  ForceFocusWindow: 'tiny-force-focus-window',
+  SystemIdleTime: 'system-idle-time',
+  SystemIdleState: 'system-idle-state',
+  ToggleVisible: 'toggle-visible',
+  AppQuit: 'app-quit',
+  SetProxy: 'set-proxy',
+  SetProxyError: 'set-proxy-error',
+  WindowIsMaximized: 'window-is-maximized',
+  WindowMaximize: 'window-maximize',
+  WindowUnmaximize: 'window-unmaximize',
+  WindowMinimize: 'window-minimize',
+  WindowHide: 'window-hide',
+  WindowShow: 'window-show',
+  ChangeAppIcon: 'change-app-icon',
+  ChangeTrayIcon: 'change-tray-icon',
+  ConsoleMessage: 'console-message',
+};
