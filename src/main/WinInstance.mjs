@@ -1,5 +1,6 @@
 import { BrowserWindow, shell } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
+import { AppEvents } from '../global/Events.mjs';
 
 /**
  * Represents a single managed Electron BrowserWindow instance.
@@ -11,6 +12,34 @@ class TinyWinInstance {
   /** @typedef {function(string | symbol, ...any): void} Emit */
   /** @typedef {(win: Electron.BrowserWindow, ops?: Electron.OpenDevToolsOptions) => void} OpenDevTools */
   /** @typedef {(win: Electron.BrowserWindow, page: string|string[], ops?: Electron.LoadFileOptions|Electron.LoadURLOptions) => void} LoadPath */
+
+  #AppEvents = { ...AppEvents };
+
+  /**
+   * Checks if a given value exists in the AppEvents values.
+   *
+   * @param {string} value - The value to check for.
+   * @returns {boolean} True if the value exists, false otherwise.
+   */
+  isValidAppEvent(value) {
+    return Object.keys(this.#AppEvents).includes(value);
+  }
+
+  /**
+   * Gets the key (event name) associated with a given AppEvents value.
+   *
+   * @param {string} value - The value to look up.
+   * @returns {string} The matching AppEvents key.
+   * @throws {Error} If the value is not found.
+   */
+  getAppEventKey(value) {
+    if (!this.isValidAppEvent(value)) throw new Error(`AppEvent value "${value}" not found.`);
+    // @ts-ignore
+    if (typeof this.#AppEvents[value] !== 'string')
+      throw new Error(`AppEvent value "${value}" is invalid.`);
+    // @ts-ignore
+    return this.#AppEvents[value];
+  }
 
   #visible = false;
   #ready = false;
@@ -141,8 +170,9 @@ class TinyWinInstance {
   /**
    * @param {Object} [settings2={}] - Configuration for the new instance.
    * @param {Emit} [settings2.emit] - The root controller or application class managing this instance.
-   * @param {OpenDevTools} [settings2.openDevTools]
-   * @param {LoadPath} [settings2.loadPath]
+   * @param {OpenDevTools} [settings2.openDevTools] - OpenDevTools callback.
+   * @param {LoadPath} [settings2.loadPath] - Load path callback.
+   * @param {AppEvents} [settings2.eventNames=this.#AppEvents] - Set of event names for internal messaging.
    * @param {Object} [settings={}] - Configuration for the new BrowserWindow.
    * @param {Electron.BrowserWindowConstructorOptions} [settings.config] - Configuration for the new BrowserWindow.
    * @param {string|number} [settings.index] - (Optional) Index of the window in the manager.
@@ -153,7 +183,7 @@ class TinyWinInstance {
    * @throws {Error} If any parameter is invalid.
    */
   constructor(
-    { emit, loadPath, openDevTools } = {},
+    { eventNames = this.#AppEvents, emit, loadPath, openDevTools } = {},
     {
       config,
       index,
@@ -163,6 +193,23 @@ class TinyWinInstance {
       urls = ['https:', 'http:'],
     } = {},
   ) {
+    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
+    for (const key in this.#AppEvents) {
+      // @ts-ignore
+      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
+        throw new Error(
+          // @ts-ignore
+          `[#Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
+        );
+    }
+
+    for (const key in eventNames) {
+      // @ts-ignore
+      if (typeof eventNames[key] === 'string')
+        // @ts-ignore
+        this.#AppEvents[key] = eventNames[key];
+    }
+
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
     if (typeof loadPath !== 'function')

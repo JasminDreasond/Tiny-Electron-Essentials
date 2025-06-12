@@ -1,10 +1,37 @@
 import { EventEmitter } from 'events';
 import { ipcRenderer, contextBridge } from 'electron';
+import { isJsonObject } from 'tiny-essentials';
 import { AppEvents } from '../global/Events.mjs';
 import TinyIpcRequestManager from './IpcRequestManager.mjs';
 
 class TinyElectronClient {
-  #AppEvents = AppEvents;
+  #AppEvents = { ...AppEvents };
+
+  /**
+   * Checks if a given value exists in the AppEvents values.
+   *
+   * @param {string} value - The value to check for.
+   * @returns {boolean} True if the value exists, false otherwise.
+   */
+  isValidAppEvent(value) {
+    return Object.keys(this.#AppEvents).includes(value);
+  }
+
+  /**
+   * Gets the key (event name) associated with a given AppEvents value.
+   *
+   * @param {string} value - The value to look up.
+   * @returns {string} The matching AppEvents key.
+   * @throws {Error} If the value is not found.
+   */
+  getAppEventKey(value) {
+    if (!this.isValidAppEvent(value)) throw new Error(`AppEvent value "${value}" not found.`);
+    // @ts-ignore
+    if (typeof this.#AppEvents[value] !== 'string')
+      throw new Error(`AppEvent value "${value}" is invalid.`);
+    // @ts-ignore
+    return this.#AppEvents[value];
+  }
 
   /**
    * Important instance used to make event emitter.
@@ -223,11 +250,14 @@ class TinyElectronClient {
   #appShow = true;
   #pinged = false;
 
+  /** @type {Record<string, any>} */
   data = {};
+
+  /** @type {Record<string, any>} */
   cache = {};
 
   /** @param {Record<string,*>} data */
-  _firstPing(data) {
+  #firstPing(data) {
     this.#pinged = true;
     this.data = data;
   }
@@ -300,40 +330,126 @@ class TinyElectronClient {
     return this.#ipcRequest;
   }
 
-  installWinScript() {
-    contextBridge.exposeInMainWorld(
-      'changeTrayIcon',
-      /** @param {string} img */ (img) => {
-        if (typeof img !== 'string')
-          throw new Error('[changeTrayIcon] The img needs to be a string.');
-        ipcRenderer.send(this.#AppEvents.ChangeTrayIcon, img, 'main');
+  /** @param {string} apiName */
+  installWinScript(apiName = 'electronWindow') {
+    if (typeof apiName !== 'string')
+      throw new TypeError('[installWinScript] The apiName needs to be a string.');
+    contextBridge.exposeInMainWorld(apiName, {
+      /**
+       * Registers a listener for the specified event.
+       * @param {string | symbol} event - The name of the event to listen for.
+       * @param {ListenerCallback} listener - The callback function to invoke.
+       */
+      on: (event, listener) => {
+        this.on(event, listener);
       },
-    );
+      /**
+       * Removes a listener from the specified event.
+       * @param {string | symbol} event - The name of the event.
+       * @param {ListenerCallback} listener - The listener to remove.
+       */
+      off: (event, listener) => {
+        this.on(event, listener);
+      },
+      /**
+       * Registers a one-time listener for the specified event.
+       * @param {string | symbol} event - The name of the event to listen for once.
+       * @param {ListenerCallback} listener - The callback function to invoke.
+       */
+      once: (event, listener) => {
+        this.once(event, listener);
+      },
 
-    contextBridge.exposeInMainWorld(
-      'changeAppIcon',
-      /** @param {string} img */ (img) => {
+      /**
+       * @param {string} img
+       * @param {string} id
+       */
+      changeTrayIcon: (img, id) => {
         if (typeof img !== 'string')
-          throw new Error('[changeAppIcon] The img needs to be a string.');
+          throw new TypeError('[changeTrayIcon] The img needs to be a string.');
+        if (typeof id !== 'string')
+          throw new TypeError('[changeTrayIcon] The id needs to be a string.');
+        ipcRenderer.send(this.#AppEvents.ChangeTrayIcon, img, id);
+      },
+
+      /** @param {string} img */
+      changeAppIcon: (img) => {
+        if (typeof img !== 'string')
+          throw new TypeError('[changeAppIcon] The img needs to be a string.');
         ipcRenderer.send(this.#AppEvents.ChangeAppIcon, img);
       },
-    );
+
+      /** @param {boolean} isVisible */
+      setIsVisible: (isVisible) => ipcRenderer.send(this.#AppEvents.ToggleVisible, isVisible),
+      /** @param {Electron.ProxyConfig} config */
+      setProxy: (config) => ipcRenderer.send(this.#AppEvents.SetProxy, config),
+
+      /** @returns {boolean} */
+      getShowStatus: () => this.getShowStatus(),
+      /** @returns {Record<string, any>} */
+      getData: () => this.getData(),
+
+      /** @returns {boolean} */
+      isVisible: () => this.isVisible(),
+      /** @returns {boolean} */
+      isFocused: () => this.isFocused(),
+      /** @returns {boolean} */
+      isMaximized: () => this.isMaximized(),
+
+      requestCache: () => ipcRenderer.send(this.#AppEvents.ElectronCacheValues, true),
+
+      /** @returns {Record<string, any>} */
+      getCache: () => this.getCache(),
+
+      forceFocus: () => ipcRenderer.send(this.#AppEvents.ForceFocusWindow, true),
+      focus: () => ipcRenderer.send(this.#AppEvents.FocusWindow, true),
+      blur: () => ipcRenderer.send(this.#AppEvents.BlurWindow, true),
+
+      show: () => ipcRenderer.send(this.#AppEvents.ShowWindow, true),
+      hide: () => ipcRenderer.send(this.#AppEvents.WindowHide, true),
+
+      maximize: () => ipcRenderer.send(this.#AppEvents.WindowMaximize, true),
+      unmaximize: () => ipcRenderer.send(this.#AppEvents.WindowUnmaximize, true),
+      minimize: () => ipcRenderer.send(this.#AppEvents.WindowMinimize, true),
+      quit: () => ipcRenderer.send(this.#AppEvents.AppQuit, true),
+
+      /** @returns {string} */
+      getExecPath: () => process.execPath,
+    });
   }
 
   /**
    * @param {Object} [settings={}] - Configuration settings for the application.
    * @param {string} [settings.ipcReceiverChannel] - Custom ipc response channel name of TinyIpcResponder instance.
+   * @param {AppEvents} [settings.eventNames=this.#AppEvents] - Set of event names for internal messaging.
    *
    * @throws {Error} If any required string values are missing or invalid.
    */
-  constructor({ ipcReceiverChannel } = {}) {
+  constructor({ ipcReceiverChannel, eventNames = { ...this.#AppEvents } } = {}) {
+    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
+    for (const key in this.#AppEvents) {
+      // @ts-ignore
+      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
+        throw new Error(
+          // @ts-ignore
+          `[#Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
+        );
+    }
+
+    for (const key in eventNames) {
+      // @ts-ignore
+      if (typeof eventNames[key] === 'string')
+        // @ts-ignore
+        this.#AppEvents[key] = eventNames[key];
+    }
+
     this.#ipcRequest = new TinyIpcRequestManager(ipcReceiverChannel);
 
-    ipcRenderer.on('resize', (event, data) => this.#emit('resize', data));
-    ipcRenderer.on('set-proxy', (event, data) => this.#emit('setProxy', data));
-    ipcRenderer.on('console-message', (event, msg, msg2) => console.log(msg, msg2));
+    ipcRenderer.on(this.#AppEvents.Resize, (_event, data) => this.#emit('resize', data));
+    ipcRenderer.on(this.#AppEvents.SetProxy, (_event, data) => this.#emit('setProxy', data));
+    ipcRenderer.on(this.#AppEvents.ConsoleMessage, (_event, msg, msg2) => console.log(msg, msg2));
 
-    ipcRenderer.on('set-proxy-error', (event, data) => {
+    ipcRenderer.on(this.#AppEvents.SetProxyError, (_event, data) => {
       try {
         /** @type {Error} */
         const err = new Error(data.message);
@@ -348,7 +464,7 @@ class TinyElectronClient {
     });
 
     // App Status
-    ipcRenderer.on('tiny-app-is-show', (event, data) => {
+    ipcRenderer.on('tiny-app-is-show', (_event, data) => {
       this.#setShowStatus(data);
       this.#emit('appShow', data);
     });
@@ -368,8 +484,8 @@ class TinyElectronClient {
       this.#emit('isVisible', arg);
     });
 
-    ipcRenderer.on('ping', (_event, arg) => this._firstPing(arg));
-    ipcRenderer.on('electron-cache-values', (event, msg) => this.#setCache(msg));
+    ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) => this.#firstPing(arg));
+    ipcRenderer.on(this.#AppEvents.ElectronCacheValues, (event, msg) => this.#setCache(msg));
   }
 }
 

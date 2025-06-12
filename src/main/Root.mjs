@@ -32,8 +32,34 @@ import TinyIpcResponder from './IpcResponder.mjs';
  */
 
 class TinyElectronRoot {
-  #AppEvents = AppEvents;
+  #AppEvents = { ...AppEvents };
   #winFile = new TinyWindowFile();
+
+  /**
+   * Checks if a given value exists in the AppEvents values.
+   *
+   * @param {string} value - The value to check for.
+   * @returns {boolean} True if the value exists, false otherwise.
+   */
+  isValidAppEvent(value) {
+    return Object.keys(this.#AppEvents).includes(value);
+  }
+
+  /**
+   * Gets the key (event name) associated with a given AppEvents value.
+   *
+   * @param {string} value - The value to look up.
+   * @returns {string} The matching AppEvents key.
+   * @throws {Error} If the value is not found.
+   */
+  getAppEventKey(value) {
+    if (!this.isValidAppEvent(value)) throw new Error(`AppEvent value "${value}" not found.`);
+    // @ts-ignore
+    if (typeof this.#AppEvents[value] !== 'string')
+      throw new Error(`AppEvent value "${value}" is invalid.`);
+    // @ts-ignore
+    return this.#AppEvents[value];
+  }
 
   /**
    * Important instance used to make event emitter.
@@ -635,6 +661,7 @@ class TinyElectronRoot {
 
     const newInstance = new TinyWinInstance(
       {
+        eventNames: this.#AppEvents,
         emit: (event, ...args) => this.emit(event, ...args),
         loadPath: (win, page, ops) => this.loadPath(win, page, ops),
         openDevTools: (win, ops) => this.openDevTools(win, ops),

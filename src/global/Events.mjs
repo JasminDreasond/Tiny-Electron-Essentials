@@ -1,6 +1,8 @@
 /**
  * A map of internal IPC event names used throughout the application to trigger various
- * window and system-level actions.
+ * window and system-level actions. These strings are used as channel names for communication
+ * between the main and renderer processes in an Electron-based application. This map ensures
+ * that IPC communication is standardized and centralized to avoid naming inconsistencies.
  *
  * @typedef {Object} AppEvents
  * @property {string} OpenDevTools        - Opens the developer tools in the application window.
@@ -24,6 +26,9 @@
  * @property {string} ChangeAppIcon       - Changes the icon of the application window.
  * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application.
  * @property {string} ConsoleMessage      - Sends a message to be printed in the window process console.
+ * @property {string} ElectronCacheValues - Requests or responds with cached Electron-related values (e.g., user agent, version).
+ * @property {string} Ping                - Used to check connectivity between processes or confirm IPC channel activity.
+ * @property {string} Resize              - Resizes the application window to a specified width and height.
  */
 
 export const AppEvents = {
@@ -48,4 +53,7 @@ export const AppEvents = {
   ChangeAppIcon: 'change-app-icon',
   ChangeTrayIcon: 'change-tray-icon',
   ConsoleMessage: 'console-message',
+  ElectronCacheValues: 'electron-cache-values',
+  Ping: 'ping',
+  Resize: 'resize',
 };
