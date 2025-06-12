@@ -63,3 +63,32 @@ export const AppEvents = {
   Resize: 'resize',
   ShowApp: 'tiny-app-is-show',
 };
+
+/**
+ * A map of event names used with an internal EventEmitter instance.
+ * These events are emitted and listened to internally within the application to handle
+ * lifecycle events, window state changes, and proxy configurations.
+ *
+ * @typedef {Object} RootEvents
+ * @property {string} AppShow            - Emitted when the application is brought to the foreground or made visible.
+ * @property {string} IsMaximized        - Emitted when a check is performed or a change occurs in the window's maximized state.
+ * @property {string} IsFocused          - Emitted when the window gains or loses focus.
+ * @property {string} IsVisible          - Emitted when the window becomes visible or hidden.
+ * @property {string} SetProxyError      - Emitted when there is an error setting a proxy configuration.
+ * @property {string} SetProxy           - Emitted when a proxy configuration is successfully applied.
+ * @property {string} Resize             - Emitted when the application window is resized.
+ * @property {string} Ready              - Emitted when the application is ready to initialize its core systems.
+ * @property {string} CreateFirstWindow  - Emitted to signal the creation of the first application window.
+ */
+
+export const RootEvents = {
+  AppShow: 'appShow',
+  IsMaximized: 'isMaximized',
+  IsFocused: 'isFocused',
+  IsVisible: 'isVisible',
+  SetProxyError: 'setProxyError',
+  SetProxy: 'setProxy',
+  Resize: 'resize',
+  Ready: 'Ready',
+  CreateFirstWindow: 'CreateFirstWindow',
+};

@@ -5,7 +5,7 @@ import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray } from 'electr
 import { release, platform } from 'node:os';
 
 import { isJsonObject } from 'tiny-essentials';
-import { AppEvents } from '../global/Events.mjs';
+import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { deepClone, serializeError } from '../global/Utils.mjs';
 import TinyWinInstance from './WinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
@@ -529,7 +529,7 @@ class TinyElectronRoot {
       }
     });
 
-    this.#emit('CreateFirstWindow');
+    this.#emit(RootEvents.CreateFirstWindow);
   }
 
   /**
@@ -920,7 +920,7 @@ class TinyElectronRoot {
       if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
         throw new Error(
           // @ts-ignore
-          `[#Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
+          `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
         );
     }
 
@@ -1472,7 +1472,7 @@ class TinyElectronRoot {
       app.on('ready', () => {
         if (this.#appReady) return;
         this.#appReady = true;
-        this.#emit('Ready');
+        this.#emit(RootEvents.Ready);
       });
     }
   }

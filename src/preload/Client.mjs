@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { ipcRenderer, contextBridge } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
-import { AppEvents } from '../global/Events.mjs';
+import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { deserializeError } from '../global/Utils.mjs';
 import TinyIpcRequestManager from './IpcRequestManager.mjs';
 
@@ -433,7 +433,7 @@ class TinyElectronClient {
       if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
         throw new Error(
           // @ts-ignore
-          `[#Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
+          `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
         );
     }
 
@@ -446,15 +446,17 @@ class TinyElectronClient {
 
     this.#ipcRequest = new TinyIpcRequestManager(ipcReceiverChannel);
 
-    ipcRenderer.on(this.#AppEvents.Resize, (_event, data) => this.#emit('resize', data));
-    ipcRenderer.on(this.#AppEvents.SetProxy, (_event, data) => this.#emit('setProxy', data));
+    ipcRenderer.on(this.#AppEvents.Resize, (_event, data) => this.#emit(RootEvents.Resize, data));
+    ipcRenderer.on(this.#AppEvents.SetProxy, (_event, data) =>
+      this.#emit(RootEvents.SetProxy, data),
+    );
     ipcRenderer.on(this.#AppEvents.ConsoleMessage, (_event, msg, msg2) => console.log(msg, msg2));
 
     ipcRenderer.on(this.#AppEvents.SetProxyError, (_event, data) => {
       try {
         /** @type {Error} */
         const err = deserializeError(data);
-        this.#emit('setProxyError', err);
+        this.#emit(RootEvents.SetProxyError, err);
       } catch (err) {
         console.error(err);
       }
@@ -463,22 +465,22 @@ class TinyElectronClient {
     // App Status
     ipcRenderer.on(this.#AppEvents.ShowApp, (_event, data) => {
       this.#setShowStatus(data);
-      this.#emit('appShow', data);
+      this.#emit(RootEvents.AppShow, data);
     });
 
     ipcRenderer.on(this.#AppEvents.WindowIsMaximized, (_event, arg) => {
       this.#setIsMaximized(arg);
-      this.#emit('isMaximized', arg);
+      this.#emit(RootEvents.IsMaximized, arg);
     });
 
     ipcRenderer.on(this.#AppEvents.WindowIsFocused, (_event, arg) => {
       this.#setIsFocused(arg);
-      this.#emit('isFocused', arg);
+      this.#emit(RootEvents.IsFocused, arg);
     });
 
     ipcRenderer.on(this.#AppEvents.WindowIsVisible, (_event, arg) => {
       this.#setIsVisible(arg);
-      this.#emit('isVisible', arg);
+      this.#emit(RootEvents.IsVisible, arg);
     });
 
     ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) => this.#firstPing(arg));
