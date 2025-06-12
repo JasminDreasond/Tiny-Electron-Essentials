@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const { TinyElectronClient } = require('../preload/index.cjs');
 
 const client = new TinyElectronClient();
+client.installWinScript();
 const manager = client.getIpcRequest();
 
 contextBridge.exposeInMainWorld('api', {

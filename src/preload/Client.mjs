@@ -5,6 +5,61 @@ import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { deserializeError } from '../global/Utils.mjs';
 import TinyIpcRequestManager from './IpcRequestManager.mjs';
 
+/**
+ * @typedef {Object} TinyElectronClientApi
+ *
+ * Registers a listener for the specified event.
+ * @property {(event:string|symbol, listener:ListenerCallback) => void} on
+ *
+ * Removes a listener from the specified event.
+ * @property {(event:string|symbol, listener:ListenerCallback) => void} off
+ *
+ * Registers a one-time listener for the specified event.
+ * @property {(event:string|symbol, listener:ListenerCallback) => void} once
+ *
+ * @property {() => boolean} getShowStatus
+ *
+ * @property {() => Record<string, any>} getData
+ *
+ * @property {() => boolean} isVisible
+ *
+ * @property {() => boolean} isFocused
+ *
+ * @property {() => boolean} isMaximized
+ *
+ * @property {() => Record<string, any>} getCache
+ *
+ * @property {() => void} requestCache
+ *
+ * @property {() => void} forceFocus
+ *
+ * @property {() => void} focus
+ *
+ * @property {() => void} blur
+ *
+ * @property {() => void} show
+ *
+ * @property {() => void} hide
+ *
+ * @property {() => void} maximize
+ *
+ * @property {() => void} unmaximize
+ *
+ * @property {() => void} minimize
+ *
+ * @property {() => void} quit
+ *
+ * @property {() => string} getExecPath
+ *
+ * @property {(img: string, id:string) => void} changeTrayIcon
+ *
+ * @property {(img: string) => void} changeAppIcon
+ *
+ * @property {(isVisible: boolean) => void} setIsVisible
+ *
+ * @property {(config: Electron.ProxyConfig) => void} setProxy
+ */
+
 class TinyElectronClient {
   #AppEvents = AppEvents;
 
@@ -331,76 +386,35 @@ class TinyElectronClient {
     return this.#ipcRequest;
   }
 
-  /** @param {string} apiName */
-  installWinScript(apiName = 'electronWindow') {
+  /**
+   * @param {string} apiName - The name under which the API will be exposed in the window context.
+   * @param {string[]} [enabledMethods] - Optional list of method names to include in the API. All methods are enabled by default.
+   * @returns {Partial<TinyElectronClientApi>}
+   */
+  installWinScript(apiName = 'electronWindow', enabledMethods) {
     if (typeof apiName !== 'string')
       throw new TypeError('[installWinScript] The apiName needs to be a string.');
-    contextBridge.exposeInMainWorld(apiName, {
-      /**
-       * Registers a listener for the specified event.
-       * @param {string | symbol} event - The name of the event to listen for.
-       * @param {ListenerCallback} listener - The callback function to invoke.
-       */
+
+    /** @type {TinyElectronClientApi} */
+    const apiTemplate = {
       on: (event, listener) => {
         this.on(event, listener);
       },
-      /**
-       * Removes a listener from the specified event.
-       * @param {string | symbol} event - The name of the event.
-       * @param {ListenerCallback} listener - The listener to remove.
-       */
       off: (event, listener) => {
         this.on(event, listener);
       },
-      /**
-       * Registers a one-time listener for the specified event.
-       * @param {string | symbol} event - The name of the event to listen for once.
-       * @param {ListenerCallback} listener - The callback function to invoke.
-       */
       once: (event, listener) => {
         this.once(event, listener);
       },
-
-      /**
-       * @param {string} img
-       * @param {string} id
-       */
-      changeTrayIcon: (img, id) => {
-        if (typeof img !== 'string')
-          throw new TypeError('[changeTrayIcon] The img needs to be a string.');
-        if (typeof id !== 'string')
-          throw new TypeError('[changeTrayIcon] The id needs to be a string.');
-        ipcRenderer.send(this.#AppEvents.ChangeTrayIcon, img, id);
-      },
-
-      /** @param {string} img */
-      changeAppIcon: (img) => {
-        if (typeof img !== 'string')
-          throw new TypeError('[changeAppIcon] The img needs to be a string.');
-        ipcRenderer.send(this.#AppEvents.ChangeAppIcon, img);
-      },
-
-      /** @param {boolean} isVisible */
-      setIsVisible: (isVisible) => ipcRenderer.send(this.#AppEvents.ToggleVisible, isVisible),
-      /** @param {Electron.ProxyConfig} config */
-      setProxy: (config) => ipcRenderer.send(this.#AppEvents.SetProxy, config),
-
-      /** @returns {boolean} */
       getShowStatus: () => this.getShowStatus(),
-      /** @returns {Record<string, any>} */
       getData: () => this.getData(),
+      getCache: () => this.getCache(),
 
-      /** @returns {boolean} */
       isVisible: () => this.isVisible(),
-      /** @returns {boolean} */
       isFocused: () => this.isFocused(),
-      /** @returns {boolean} */
       isMaximized: () => this.isMaximized(),
 
       requestCache: () => ipcRenderer.send(this.#AppEvents.ElectronCacheValues, true),
-
-      /** @returns {Record<string, any>} */
-      getCache: () => this.getCache(),
 
       forceFocus: () => ipcRenderer.send(this.#AppEvents.ForceFocusWindow, true),
       focus: () => ipcRenderer.send(this.#AppEvents.FocusWindow, true),
@@ -414,9 +428,54 @@ class TinyElectronClient {
       minimize: () => ipcRenderer.send(this.#AppEvents.WindowMinimize, true),
       quit: () => ipcRenderer.send(this.#AppEvents.AppQuit, true),
 
-      /** @returns {string} */
       getExecPath: () => process.execPath,
-    });
+
+      changeTrayIcon: (img, id) => {
+        if (typeof img !== 'string')
+          throw new TypeError('[changeTrayIcon] The img needs to be a string.');
+        if (typeof id !== 'string')
+          throw new TypeError('[changeTrayIcon] The id needs to be a string.');
+        ipcRenderer.send(this.#AppEvents.ChangeTrayIcon, img, id);
+      },
+
+      changeAppIcon: (img) => {
+        if (typeof img !== 'string')
+          throw new TypeError('[changeAppIcon] The img needs to be a string.');
+        ipcRenderer.send(this.#AppEvents.ChangeAppIcon, img);
+      },
+
+      setIsVisible: (isVisible) => ipcRenderer.send(this.#AppEvents.ToggleVisible, isVisible),
+
+      setProxy: (config) => ipcRenderer.send(this.#AppEvents.SetProxy, config),
+    };
+
+    /** @type {Partial<TinyElectronClientApi>} */
+    const api = {};
+
+    if (!Array.isArray(enabledMethods)) {
+      for (const name in apiTemplate) {
+        // @ts-ignore
+        api[name] = apiTemplate[name];
+      }
+    } else {
+      for (const name of enabledMethods) {
+        if (typeof name !== 'string')
+          throw new TypeError(
+            `[installWinScript] All values in enabledMethods must be strings. Found: ${typeof name}`,
+          );
+
+        // @ts-ignore
+        if (typeof apiTemplate[name] === 'function') {
+          // @ts-ignore
+          api[name] = apiTemplate[name];
+        } else {
+          throw new Error(`[installWinScript] Invalid method name: "${name}"`);
+        }
+      }
+    }
+
+    contextBridge.exposeInMainWorld(apiName, api);
+    return api;
   }
 
   /**
