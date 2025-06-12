@@ -2,10 +2,11 @@ import { EventEmitter } from 'events';
 import { ipcRenderer, contextBridge } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents } from '../global/Events.mjs';
+import { deserializeError } from '../global/Utils.mjs';
 import TinyIpcRequestManager from './IpcRequestManager.mjs';
 
 class TinyElectronClient {
-  #AppEvents = { ...AppEvents };
+  #AppEvents = AppEvents;
 
   /**
    * Checks if a given value exists in the AppEvents values.
@@ -452,11 +453,7 @@ class TinyElectronClient {
     ipcRenderer.on(this.#AppEvents.SetProxyError, (_event, data) => {
       try {
         /** @type {Error} */
-        const err = new Error(data.message);
-        err.code = data.code;
-        err.message = data.message;
-        err.cause = data.cause;
-        err.stack = data.stack;
+        const err = deserializeError(data);
         this.#emit('setProxyError', err);
       } catch (err) {
         console.error(err);
@@ -464,28 +461,28 @@ class TinyElectronClient {
     });
 
     // App Status
-    ipcRenderer.on('tiny-app-is-show', (_event, data) => {
+    ipcRenderer.on(this.#AppEvents.ShowApp, (_event, data) => {
       this.#setShowStatus(data);
       this.#emit('appShow', data);
     });
 
-    ipcRenderer.on('window-is-maximized', (_event, arg) => {
+    ipcRenderer.on(this.#AppEvents.WindowIsMaximized, (_event, arg) => {
       this.#setIsMaximized(arg);
       this.#emit('isMaximized', arg);
     });
 
-    ipcRenderer.on('window-is-focused', (_event, arg) => {
+    ipcRenderer.on(this.#AppEvents.WindowIsFocused, (_event, arg) => {
       this.#setIsFocused(arg);
       this.#emit('isFocused', arg);
     });
 
-    ipcRenderer.on('window-is-visible', (_event, arg) => {
+    ipcRenderer.on(this.#AppEvents.WindowIsVisible, (_event, arg) => {
       this.#setIsVisible(arg);
       this.#emit('isVisible', arg);
     });
 
     ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) => this.#firstPing(arg));
-    ipcRenderer.on(this.#AppEvents.ElectronCacheValues, (event, msg) => this.#setCache(msg));
+    ipcRenderer.on(this.#AppEvents.ElectronCacheValues, (_event, msg) => this.#setCache(msg));
   }
 }
 

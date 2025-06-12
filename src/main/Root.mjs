@@ -6,7 +6,7 @@ import { release, platform } from 'node:os';
 
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents } from '../global/Events.mjs';
-import { deepClone } from '../global/Utils.mjs';
+import { deepClone, serializeError } from '../global/Utils.mjs';
 import TinyWinInstance from './WinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
 import TinyIpcResponder from './IpcResponder.mjs';
@@ -32,7 +32,7 @@ import TinyIpcResponder from './IpcResponder.mjs';
  */
 
 class TinyElectronRoot {
-  #AppEvents = { ...AppEvents };
+  #AppEvents = AppEvents;
   #winFile = new TinyWindowFile();
 
   /**
@@ -464,12 +464,7 @@ class TinyElectronRoot {
           })
           .catch((err) => {
             if (win && win.webContents)
-              win.webContents.send(this.#AppEvents.SetProxyError, {
-                code: err.code,
-                message: err.message,
-                cause: err.cause,
-                stack: err.stack,
-              });
+              win.webContents.send(this.#AppEvents.SetProxyError, serializeError(err));
           });
       }
     });

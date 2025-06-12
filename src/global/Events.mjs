@@ -21,6 +21,8 @@
  * @property {string} WindowMaximize      - Maximizes the application window.
  * @property {string} WindowUnmaximize    - Restores the window from maximized to normal size.
  * @property {string} WindowMinimize      - Minimizes the application window to the taskbar or dock.
+ * @property {string} WindowIsFocused     - Returns whether the application window is currently focused.
+ * @property {string} WindowIsVisible     - Returns whether the application window is currently visible.
  * @property {string} WindowHide          - Hides the application window from view.
  * @property {string} WindowShow          - Shows the application window if hidden.
  * @property {string} ChangeAppIcon       - Changes the icon of the application window.
@@ -29,6 +31,7 @@
  * @property {string} ElectronCacheValues - Requests or responds with cached Electron-related values (e.g., user agent, version).
  * @property {string} Ping                - Used to check connectivity between processes or confirm IPC channel activity.
  * @property {string} Resize              - Resizes the application window to a specified width and height.
+ * @property {string} ShowApp             - Instructs the application to become visible, typically restoring it from the tray.
  */
 
 export const AppEvents = {
@@ -48,6 +51,8 @@ export const AppEvents = {
   WindowMaximize: 'window-maximize',
   WindowUnmaximize: 'window-unmaximize',
   WindowMinimize: 'window-minimize',
+  WindowIsFocused: 'window-is-focused',
+  WindowIsVisible: 'window-is-visible',
   WindowHide: 'window-hide',
   WindowShow: 'window-show',
   ChangeAppIcon: 'change-app-icon',
@@ -56,4 +61,5 @@ export const AppEvents = {
   ElectronCacheValues: 'electron-cache-values',
   Ping: 'ping',
   Resize: 'resize',
+  ShowApp: 'tiny-app-is-show',
 };
