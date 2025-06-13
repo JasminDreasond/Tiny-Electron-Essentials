@@ -98,7 +98,7 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * @property {(img: string) => Promise<void>} changeAppIcon
  *
  * Sets the internal visibility flag.
- * @property {(isVisible: boolean) => Promise<boolean>} setIsVisible
+ * @property {(isVisible?: boolean) => Promise<boolean>} setIsVisible
  *
  * Updates the application's network proxy settings.
  * Requires an Electron `ProxyConfig` object with appropriate options.
@@ -547,7 +547,7 @@ class TinyElectronClient {
   /**
    * Sets the internal visibility flag.
    *
-   * @param {boolean} isVisible
+   * @param {boolean} [isVisible]
    * @returns {Promise<boolean>}
    */
   setIsVisible(isVisible) {

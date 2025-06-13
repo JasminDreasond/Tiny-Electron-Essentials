@@ -456,7 +456,7 @@ class TinyElectronRoot {
 
     this.#ipcResponder.on(this.#AppEvents.ToggleVisible, (event, isVisible, res) => {
       const win = getWinInstance(event);
-      if (win) res(win.toggleVisible(isVisible === true));
+      if (win) res(win.toggleVisible(isVisible));
       else res(null);
     });
 
