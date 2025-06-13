@@ -16,57 +16,86 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  */
 
 /**
+ * Represents the client-side API exposed by the Electron preload script,
+ * enabling secure and controlled communication between the page and preload process.
+ *
  * @typedef {Object} TinyElectronClientApi
  *
  * Registers a listener for the specified event.
- * @property {(event:string|symbol, listener:ListenerCallback) => void} on
+ * @property {(event: string | symbol, listener: ListenerCallback) => void} on
  *
  * Removes a listener from the specified event.
- * @property {(event:string|symbol, listener:ListenerCallback) => void} off
+ * @property {(event: string | symbol, listener: ListenerCallback) => void} off
  *
  * Registers a one-time listener for the specified event.
- * @property {(event:string|symbol, listener:ListenerCallback) => void} once
+ * @property {(event: string | symbol, listener: ListenerCallback) => void} once
  *
+ * Retrieves the current internal visibility status flag.
+ * May differ from actual visibility (`isVisible`) for internal tracking purposes.
  * @property {() => boolean} getShowStatus
  *
+ * Returns an object containing runtime data about the current session or app instance.
+ * This data is typically provided by the main process.
  * @property {() => Record<string, any>} getData
  *
+ * Indicates whether the application window is currently visible on the screen.
  * @property {() => boolean} isVisible
  *
+ * Indicates whether the application window is currently focused.
  * @property {() => boolean} isFocused
  *
+ * Indicates whether the application window is currently maximized.
  * @property {() => boolean} isMaximized
  *
+ * Returns a key-value object representing cached state/data stored by the main process.
  * @property {() => Record<string, any>} getCache
  *
+ * Sends a request to the main process to update and resend the latest cache state.
  * @property {() => void} requestCache
  *
+ * Sends a request to forcibly focus the application window, even if it’s not currently visible or active.
  * @property {() => void} forceFocus
  *
+ * Brings the application window to the front and gives it focus.
  * @property {() => void} focus
  *
+ * Removes focus from the application window, if currently focused.
  * @property {() => void} blur
  *
+ * Makes the application window visible.
  * @property {() => void} show
  *
+ * Hides the application window from view (but does not quit the app).
  * @property {() => void} hide
  *
+ * Maximizes the application window to fill the screen.
  * @property {() => void} maximize
  *
+ * Restores the application window from maximized state to its previous size.
  * @property {() => void} unmaximize
  *
+ * Minimizes the application window to the taskbar/dock.
  * @property {() => void} minimize
  *
+ * Requests the application to quit immediately.
  * @property {() => void} quit
  *
+ * Returns the absolute path to the current executable of the running application.
  * @property {() => string} getExecPath
  *
- * @property {(img: string, id:string) => void} changeTrayIcon
+ * Changes the tray icon to the specified image.
+ * `img` should be a valid image file.
+ * @property {(img: string, id: string) => void} changeTrayIcon
  *
+ * Changes the application window or dock icon (depending on platform).
+ * `img` should be a valid image file.
  * @property {(img: string) => void} changeAppIcon
  *
+ * Sets the internal visibility flag.
  * @property {(isVisible: boolean) => void} setIsVisible
  *
+ * Updates the application's network proxy settings.
+ * Requires an Electron `ProxyConfig` object with appropriate options.
  * @property {(config: Electron.ProxyConfig) => void} setProxy
  */
 
