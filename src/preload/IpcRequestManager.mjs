@@ -80,9 +80,9 @@ class TinyIpcRequestManager {
   /**
    * Sends a request and returns a promise that resolves on response
    * @param {string} channel - The ipcRenderer channel to send
-   * @param {any} payload - The data to send with the request
+   * @param {any} [payload] - The data to send with the request
    * @param {EmitOptions} [options]
-   * @returns {Promise<unknown>}
+   * @returns {Promise<*>}
    * @throws {Error} If the channel or options are invalid
    */
   send(channel, payload, options = {}) {

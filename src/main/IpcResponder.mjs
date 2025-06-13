@@ -10,12 +10,12 @@ import { serializeError } from '../global/Utils.mjs';
  */
 
 /**
- * @typedef {(response: unknown, error: Error | null) => void} IPCRespondCallback
+ * @typedef {(response: unknown, error?: Error | null) => void} IPCRespondCallback
  * A callback function used to respond to an IPC request.
  */
 
 /**
- * @typedef {(payload: any, respond: IPCRespondCallback, event?: Electron.IpcMainEvent) => void} IPCRequestHandler
+ * @typedef {(event: Electron.IpcMainEvent, payload: any, respond: IPCRespondCallback) => void} IPCRequestHandler
  * A handler function used to process incoming IPC requests on the main process.
  */
 
@@ -72,19 +72,29 @@ class TinyIpcResponder {
         return;
       }
 
-      /** @type {IPCRespondCallback} */
-      const respond = (response, error = null) => {
+      try {
+        /** @type {IPCRespondCallback} */
+        const respond = (response, error = null) => {
+          /** @type {SendResult} */
+          const result = {
+            __requestId,
+            payload: response,
+            error: error ? serializeError(error) : null,
+          };
+          event.sender.send(this.#responseChannel, result);
+        };
+
+        handler(event, payload, respond);
+      } catch (err) {
         /** @type {SendResult} */
         const result = {
           __requestId,
-          payload: response,
-          error: error ? serializeError(error) : null,
+          payload: undefined,
+          // @ts-ignore
+          error: err ? serializeError(err) : null,
         };
-
         event.sender.send(this.#responseChannel, result);
-      };
-
-      handler(payload, respond, event);
+      }
     };
 
     this.#handlers.set(channel, wrappedHandler);

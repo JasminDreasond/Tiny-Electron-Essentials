@@ -80,6 +80,12 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * Requests the application to quit immediately.
  * @property {() => void} quit
  *
+ * Retrieves the amount of system idle time in seconds.
+ * @property {() => Promise<number>} systemIdleTime
+ *
+ * Determines the current system idle state.
+ * @property {(idleThreshold: number) => Promise<"active" | "idle" | "locked" | "unknown">} systemIdleState
+ *
  * Returns the absolute path to the current executable of the running application.
  * @property {() => string} getExecPath
  *
@@ -428,6 +434,27 @@ class TinyElectronClient {
   }
 
   /**
+   * Retrieves the amount of system idle time in seconds.
+   * This represents how long the system has been idle (i.e., without any user input).
+   *
+   * @returns {Promise<number>} A promise that resolves with the number of seconds since last user activity.
+   */
+  systemIdleTime() {
+    return this.#ipcRequest.send(this.#AppEvents.SystemIdleTime);
+  }
+
+  /**
+   * Determines the current system idle state.
+   *
+   * @param {number} idleThreshold
+   *
+   * @returns {Promise<"active" | "idle" | "locked" | "unknown">}
+   */
+  systemIdleState(idleThreshold) {
+    return this.#ipcRequest.send(this.#AppEvents.SystemIdleState, idleThreshold);
+  }
+
+  /**
    * @param {string} apiName - The name under which the API will be exposed in the window context.
    * @param {string[]} [enabledMethods] - Optional list of method names to include in the API. All methods are enabled by default.
    * @returns {Partial<TinyElectronClientApi>}
@@ -469,6 +496,9 @@ class TinyElectronClient {
       minimize: () => ipcRenderer.send(this.#AppEvents.WindowMinimize, true),
       quit: () => ipcRenderer.send(this.#AppEvents.AppQuit, true),
 
+      systemIdleTime: () => this.systemIdleTime(),
+      systemIdleState: (idleThreshold) => this.systemIdleState(idleThreshold),
+
       getExecPath: () => process.execPath,
 
       changeTrayIcon: (img, id) => {
@@ -487,7 +517,7 @@ class TinyElectronClient {
 
       setIsVisible: (isVisible) => ipcRenderer.send(this.#AppEvents.ToggleVisible, isVisible),
 
-      setProxy: (config) => ipcRenderer.send(this.#AppEvents.SetProxy, config),
+      setProxy: (config) => this.#ipcRequest.send(this.#AppEvents.SetProxy, config),
     };
 
     /** @type {Partial<TinyElectronClientApi>} */

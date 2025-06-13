@@ -69,7 +69,7 @@ root.on('CreateFirstWindow', () => {
 
   console.log(`Instance index: ${instance.getIndex()}`);
 
-  responder.on('get-user-data', async (payload, respond) => {
+  responder.on('get-user-data', async (_event, payload, respond) => {
     try {
       const user = { result: 'pudding', time: Date.now(), ...payload };
       respond(user);

@@ -427,19 +427,19 @@ class TinyElectronRoot {
         }, 200);
     });
 
-    ipcMain.on(this.#AppEvents.SystemIdleTime, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.SystemIdleTime, (event, _value, res) => {
       const win = getWin(event);
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleTime();
-        win.webContents.send(this.#AppEvents.SystemIdleTime, idleSecs);
+        res(idleSecs);
       }
     });
 
-    ipcMain.on(this.#AppEvents.SystemIdleState, (event, value) => {
+    this.#ipcResponder.on(this.#AppEvents.SystemIdleState, (event, value, res) => {
       const win = getWin(event);
       if (win) {
-        const idleSecs = powerMonitor.getSystemIdleState(value);
-        win.webContents.send(this.#AppEvents.SystemIdleState, idleSecs);
+        const idleState = powerMonitor.getSystemIdleState(value);
+        res(idleState);
       }
     });
 
@@ -454,19 +454,24 @@ class TinyElectronRoot {
      * Set proxy
      * @type {(event: Electron.IpcMainEvent, config: Electron.ProxyConfig) => void}
      */
-    ipcMain.on(this.#AppEvents.SetProxy, (event, config) => {
+    this.#ipcResponder.on(this.#AppEvents.SetProxy, (event, config, res) => {
       const win = getWin(event);
       if (win && win.webContents) {
         win.webContents.session
           .setProxy(config)
-          .then((result) => {
-            if (win && win.webContents) win.webContents.send(this.#AppEvents.SetProxy, result);
+          .then(() => {
+            if (win && win.webContents) {
+              res(null);
+              win.webContents.send(this.#AppEvents.SetProxy);
+            } else res(null, new Error('Invalid window type'));
           })
           .catch((err) => {
-            if (win && win.webContents)
+            if (win && win.webContents) {
+              res(null, err);
               win.webContents.send(this.#AppEvents.SetProxyError, serializeError(err));
+            } else res(null, new Error('Invalid window type'));
           });
-      }
+      } else res(null, new Error('Invalid window type'));
     });
 
     // Window status
