@@ -30,6 +30,12 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * Registers a one-time listener for the specified event.
  * @property {(event: string | symbol, listener: ListenerCallback) => void} once
  *
+ * Opens the Developer Tools (DevTools) for the window.
+ * @property {(ops: Electron.OpenDevToolsOptions) => void} openDevTools
+ *
+ * Sets the window title for the BrowserWindow.
+ * @property {(title: string) => void} setTitle
+ *
  * Retrieves the current internal visibility status flag.
  * May differ from actual visibility (`isVisible`) for internal tracking purposes.
  * @property {() => boolean} getShowStatus
@@ -595,6 +601,37 @@ class TinyElectronClient {
   }
 
   /**
+   * Opens the Developer Tools (DevTools) for the window.
+   *
+   * This method triggers the main process to open the DevTools panel
+   * with optional configuration.
+   *
+   * @param {Electron.OpenDevToolsOptions} [ops] - Optional settings to customize the behavior of DevTools.
+   * Example options include `{ mode: 'undocked' }` or `{ mode: 'detach' }`.
+   *
+   * @returns {Promise<void>} A promise that resolves when the request is successfully sent.
+   */
+  openDevTools(ops) {
+    return this.#ipcRequest.send(this.#AppEvents.OpenDevTools, ops);
+  }
+
+  /**
+   * Sets the window title for the BrowserWindow.
+   *
+   * This method sends an IPC request to the main process to update the
+   * window's title dynamically.
+   *
+   * @param {string} title - The new title to set. Must be a non-empty string.
+   *
+   * @throws {TypeError} If the title is not a string.
+   *
+   * @returns {Promise<void>} A promise that resolves when the title is set.
+   */
+  setTitle(title) {
+    return this.#ipcRequest.send(this.#AppEvents.SetTitle, title);
+  }
+
+  /**
    * @param {string} apiName - The name under which the API will be exposed in the window context.
    * @param {string[]} [enabledMethods] - Optional list of method names to include in the API. All methods are enabled by default.
    * @returns {Partial<TinyElectronClientApi>}
@@ -614,6 +651,9 @@ class TinyElectronClient {
       once: (event, listener) => {
         this.once(event, listener);
       },
+      openDevTools: (ops) => this.openDevTools(ops),
+      setTitle: (title) => this.setTitle(title),
+
       getShowStatus: () => this.getShowStatus(),
       getData: () => this.getData(),
       getCache: () => this.getCache(),

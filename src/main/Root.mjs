@@ -379,9 +379,9 @@ class TinyElectronRoot {
       return null;
     };
 
-    this.#ipcResponder.on(this.#AppEvents.OpenDevTools, (event, _value, res) => {
+    this.#ipcResponder.on(this.#AppEvents.OpenDevTools, (event, value, res) => {
       const win = getWin(event);
-      if (win) this.openDevTools(win);
+      if (win) this.openDevTools(win, value);
       res(null);
     });
 
@@ -471,15 +471,6 @@ class TinyElectronRoot {
     });
 
     // Window status
-    this.#ipcResponder.on(this.#AppEvents.WindowIsMaximized, (event, _value, res) => {
-      const win = getWin(event);
-      if (win && win.webContents) {
-        const result = win.isMaximized();
-        win.webContents.send(this.#AppEvents.WindowIsMaximized, result);
-        res(result);
-      } else res(null);
-    });
-
     this.#ipcResponder.on(this.#AppEvents.WindowMaximize, (event, _value, res) => {
       const win = getWin(event);
       if (win) win.maximize();
