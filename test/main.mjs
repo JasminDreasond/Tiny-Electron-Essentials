@@ -82,10 +82,5 @@ root.on('CreateFirstWindow', () => {
   instance.openDevTools({ mode: 'detach' }); // ou 'bottom', 'right', etc.
 });
 
-// Ping
-ipcMain.handle('ping', async () => {
-  return 'pong from main process';
-});
-
 // Init app
 root.init();
