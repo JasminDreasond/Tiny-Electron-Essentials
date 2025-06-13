@@ -4,6 +4,7 @@ import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { deserializeError } from '../global/Utils.mjs';
 import TinyIpcRequestManager from './IpcRequestManager.mjs';
+import { getLoadingHtml } from './LoadingHtml.mjs';
 
 /**
  * @typedef {Object} TinyElectronClientApi
@@ -61,6 +62,8 @@ import TinyIpcRequestManager from './IpcRequestManager.mjs';
  */
 
 class TinyElectronClient {
+  /** @typedef {import('./LoadingHtml.mjs').GetLoadingHtml} GetLoadingHtml */
+
   #AppEvents = AppEvents;
 
   /**
@@ -476,6 +479,88 @@ class TinyElectronClient {
 
     contextBridge.exposeInMainWorld(apiName, api);
     return api;
+  }
+
+  /**
+   * @typedef {{ appendLoading: () => void, removeLoading: () => void }} InstallLoadingPageResult
+   */
+
+  /**
+   * @param {string} [exposeInMainWorld='useLoadingElectron']
+   * @param {GetLoadingHtml} [config]
+   * @returns {InstallLoadingPageResult}
+   */
+  installLoadingPage(exposeInMainWorld = 'useLoadingElectron', config) {
+    if (typeof exposeInMainWorld !== 'undefined' && typeof exposeInMainWorld !== 'string')
+      throw new TypeError(
+        `Invalid key type "${typeof exposeInMainWorld}" of exposeInMainWorld. Only string keys are supported.`,
+      );
+    /**
+     * @param {DocumentReadyState[]} condition
+     */
+    function domReady(condition = ['complete', 'interactive']) {
+      return new Promise((resolve) => {
+        if (condition.includes(document.readyState)) {
+          resolve(true);
+        } else {
+          document.addEventListener('readystatechange', () => {
+            if (condition.includes(document.readyState)) {
+              resolve(true);
+            }
+          });
+        }
+      });
+    }
+
+    const safeDOM = {
+      /**
+       * @param {HTMLElement} parent
+       * @param {HTMLElement} child
+       */
+      append(parent, child) {
+        if (!Array.from(parent.children).find((e) => e === child)) {
+          return parent.appendChild(child);
+        }
+      },
+      /**
+       * @param {HTMLElement} parent
+       * @param {HTMLElement} child
+       */
+      remove(parent, child) {
+        if (Array.from(parent.children).find((e) => e === child)) {
+          return parent.removeChild(child);
+        }
+      },
+    };
+
+    /** @returns {InstallLoadingPageResult} */
+    function useLoading() {
+      const { oStyle, oDiv } = getLoadingHtml(config);
+      /** @type {InstallLoadingPageResult} */
+      return {
+        appendLoading() {
+          safeDOM.append(document.head, oStyle);
+          safeDOM.append(document.body, oDiv);
+        },
+        removeLoading() {
+          safeDOM.remove(document.head, oStyle);
+          safeDOM.remove(document.body, oDiv);
+        },
+      };
+    }
+
+    // ----------------------------------------------------------------------
+
+    const { appendLoading, removeLoading } = useLoading();
+    if (typeof exposeInMainWorld === 'string')
+      contextBridge.exposeInMainWorld(exposeInMainWorld, { appendLoading, removeLoading });
+    domReady().then(appendLoading);
+
+    window.onmessage = (ev) => {
+      ev.data.payload === 'removeLoading' && removeLoading();
+    };
+
+    return { appendLoading, removeLoading };
   }
 
   /**

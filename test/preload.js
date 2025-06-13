@@ -3,6 +3,9 @@ const { TinyElectronClient } = require('../preload/index.cjs');
 
 const client = new TinyElectronClient();
 client.installWinScript();
+const { removeLoading } = client.installLoadingPage();
+setTimeout(removeLoading, 1000);
+
 const manager = client.getIpcRequest();
 
 contextBridge.exposeInMainWorld('api', {
