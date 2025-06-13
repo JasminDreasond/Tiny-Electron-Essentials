@@ -723,10 +723,8 @@ class TinyElectronRoot {
    */
   destroyWindow(key) {
     const instance = this.getWinInstance(key);
-    const win = instance.getWin();
-
     // Destroy the native window if not already
-    if (!win.isDestroyed()) win.destroy();
+    instance.destroy();
 
     // Clear internal references
     if (typeof key === 'undefined') {

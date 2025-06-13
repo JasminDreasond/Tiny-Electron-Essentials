@@ -15,6 +15,11 @@ class TinyWinInstance {
 
   #AppEvents = AppEvents;
 
+  #checkDestroy() {
+    if (!this.#win || this.#win.isDestroyed?.())
+      throw new Error('The BrowserWindow instance "win" is not available or has been destroyed.');
+  }
+
   /**
    * Checks if a given value exists in the AppEvents values.
    *
@@ -100,6 +105,7 @@ class TinyWinInstance {
    * @throws {TypeError} If ops is not an object.
    */
   loadPath(page, ops) {
+    this.#checkDestroy();
     return this.#loadPath(this.#win, page, ops);
   }
 
@@ -109,6 +115,7 @@ class TinyWinInstance {
    * @param {Electron.OpenDevToolsOptions} [ops] - The target DevTools config.
    */
   openDevTools(ops) {
+    this.#checkDestroy();
     return this.#openDevTools(this.#win, ops);
   }
 
@@ -122,6 +129,7 @@ class TinyWinInstance {
       throw new Error(
         '[getWindow Error] The BrowserWindow instance is not available. Make sure it was properly created.',
       );
+    this.#checkDestroy();
     return this.#win;
   }
 
@@ -135,6 +143,7 @@ class TinyWinInstance {
    * @throws {Error} If `isVisible` is not a boolean or undefined.
    */
   toggleVisible(isVisible) {
+    this.#checkDestroy();
     if (typeof isVisible !== 'undefined' && typeof isVisible !== 'boolean')
       throw new Error(
         `[toggleVisible Error] Expected a boolean or undefined, but got: ${typeof isVisible}`,
@@ -162,6 +171,7 @@ class TinyWinInstance {
    * @returns {boolean} - Returns true if the event originated from this instance's window.
    */
   isFromWin(event) {
+    this.#checkDestroy();
     const webContents = event.sender;
     if (!event.senderFrame) return false;
     const win = BrowserWindow.fromWebContents(webContents);
@@ -337,8 +347,28 @@ class TinyWinInstance {
       if (this.#win && this.#win.webContents)
         this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, this.#win.isMaximized());
     });
+  }
 
-    // Part 2
+  /**
+   * Checks whether the internal BrowserWindow instance has been destroyed.
+   *
+   * This method safely verifies if the window no longer exists or has already been destroyed.
+   * It handles edge cases where the window may be `null` or the `isDestroyed` method is unavailable.
+   *
+   * @returns {boolean} `true` if the window is destroyed or unavailable, otherwise `false`.
+   */
+  isDestroyed() {
+    if (!this.#win || this.#win.isDestroyed()) return true;
+    return false;
+  }
+
+  /**
+   * Destroys the current BrowserWindow instance.
+   *
+   * @returns {void}
+   */
+  destroy() {
+    if (!this.isDestroyed()) this.#win.destroy();
   }
 }
 
