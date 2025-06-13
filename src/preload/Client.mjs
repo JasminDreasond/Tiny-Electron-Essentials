@@ -7,6 +7,15 @@ import TinyIpcRequestManager from './IpcRequestManager.mjs';
 import { getLoadingHtml } from './LoadingHtml.mjs';
 
 /**
+ * Represents the result of installing a loading page, providing methods
+ * to control its insertion and removal from the DOM.
+ *
+ * @typedef {Object} InstallLoadingPageResult
+ * @property {() => void} appendLoading - Appends the loading screen elements to the document.
+ * @property {() => void} removeLoading - Removes the loading screen elements from the document.
+ */
+
+/**
  * @typedef {Object} TinyElectronClientApi
  *
  * Registers a listener for the specified event.
@@ -482,21 +491,25 @@ class TinyElectronClient {
   }
 
   /**
-   * @typedef {{ appendLoading: () => void, removeLoading: () => void }} InstallLoadingPageResult
-   */
-
-  /**
-   * @param {string} [exposeInMainWorld='useLoadingElectron']
-   * @param {GetLoadingHtml} [config]
-   * @returns {InstallLoadingPageResult}
+   * Installs a loading page and exposes methods to control it via the main world context.
+   *
+   * @param {string} [exposeInMainWorld='useLoadingElectron'] - The name of the property exposed in the window object via Electron’s `contextBridge`.
+   * @param {GetLoadingHtml} [config] - Optional configuration for the loading screen, including custom HTML and CSS.
+   * @returns {InstallLoadingPageResult} Object containing `appendLoading` and `removeLoading` methods.
+   *
+   * @throws {TypeError} If `exposeInMainWorld` is provided but is not a string.
    */
   installLoadingPage(exposeInMainWorld = 'useLoadingElectron', config) {
     if (typeof exposeInMainWorld !== 'undefined' && typeof exposeInMainWorld !== 'string')
       throw new TypeError(
         `Invalid key type "${typeof exposeInMainWorld}" of exposeInMainWorld. Only string keys are supported.`,
       );
+
     /**
-     * @param {DocumentReadyState[]} condition
+     * Resolves when the DOM has reached a ready state included in the given list.
+     *
+     * @param {DocumentReadyState[]} [condition=['complete', 'interactive']] - List of acceptable document states to consider the DOM ready.
+     * @returns {Promise<boolean>} Promise that resolves when DOM is ready.
      */
     function domReady(condition = ['complete', 'interactive']) {
       return new Promise((resolve) => {
@@ -512,10 +525,16 @@ class TinyElectronClient {
       });
     }
 
+    /**
+     * Utility object that provides safe methods for appending and removing
+     * child elements from a parent, avoiding duplication or errors.
+     */
     const safeDOM = {
       /**
-       * @param {HTMLElement} parent
-       * @param {HTMLElement} child
+       * Appends a child element to a parent if it is not already present.
+       *
+       * @param {HTMLElement} parent - The parent element to append to.
+       * @param {HTMLElement} child - The child element to append.
        */
       append(parent, child) {
         if (!Array.from(parent.children).find((e) => e === child)) {
@@ -523,8 +542,10 @@ class TinyElectronClient {
         }
       },
       /**
-       * @param {HTMLElement} parent
-       * @param {HTMLElement} child
+       * Removes a child element from a parent if it exists.
+       *
+       * @param {HTMLElement} parent - The parent element to remove from.
+       * @param {HTMLElement} child - The child element to remove.
        */
       remove(parent, child) {
         if (Array.from(parent.children).find((e) => e === child)) {
@@ -533,7 +554,11 @@ class TinyElectronClient {
       },
     };
 
-    /** @returns {InstallLoadingPageResult} */
+    /**
+     * Initializes the loading screen and provides control methods for it.
+     *
+     * @returns {InstallLoadingPageResult} Object with methods to append or remove the loading screen.
+     */
     function useLoading() {
       const { oStyle, oDiv } = getLoadingHtml(config);
       /** @type {InstallLoadingPageResult} */
