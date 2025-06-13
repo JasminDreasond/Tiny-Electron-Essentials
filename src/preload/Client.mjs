@@ -54,28 +54,28 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * @property {() => void} requestCache
  *
  * Sends a request to forcibly focus the application window, even if it’s not currently visible or active.
- * @property {() => void} forceFocus
+ * @property {() => Promise<void>} forceFocus
  *
  * Brings the application window to the front and gives it focus.
- * @property {() => void} focus
+ * @property {() => Promise<void>} focus
  *
  * Removes focus from the application window, if currently focused.
- * @property {() => void} blur
+ * @property {() => Promise<void>} blur
  *
  * Makes the application window visible.
- * @property {() => void} show
+ * @property {() => Promise<void>} show
  *
  * Hides the application window from view (but does not quit the app).
- * @property {() => void} hide
+ * @property {() => Promise<void>} hide
  *
  * Maximizes the application window to fill the screen.
- * @property {() => void} maximize
+ * @property {() => Promise<void>} maximize
  *
  * Restores the application window from maximized state to its previous size.
- * @property {() => void} unmaximize
+ * @property {() => Promise<void>} unmaximize
  *
  * Minimizes the application window to the taskbar/dock.
- * @property {() => void} minimize
+ * @property {() => Promise<void>} minimize
  *
  * Requests the application to quit immediately.
  * @property {() => void} quit
@@ -91,18 +91,18 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  *
  * Changes the tray icon to the specified image.
  * `img` should be a valid image file.
- * @property {(img: string, id: string) => void} changeTrayIcon
+ * @property {(img: string, id: string) => Promise<void>} changeTrayIcon
  *
  * Changes the application window or dock icon (depending on platform).
  * `img` should be a valid image file.
- * @property {(img: string) => void} changeAppIcon
+ * @property {(img: string) => Promise<void>} changeAppIcon
  *
  * Sets the internal visibility flag.
- * @property {(isVisible: boolean) => void} setIsVisible
+ * @property {(isVisible: boolean) => Promise<boolean>} setIsVisible
  *
  * Updates the application's network proxy settings.
  * Requires an Electron `ProxyConfig` object with appropriate options.
- * @property {(config: Electron.ProxyConfig) => void} setProxy
+ * @property {(config: Electron.ProxyConfig) => Promise<void>} setProxy
  */
 
 class TinyElectronClient {
@@ -455,6 +455,146 @@ class TinyElectronClient {
   }
 
   /**
+   * Sends a request to the main process to update and resend the latest cache state.
+   * @returns {void}
+   */
+  requestCache() {
+    ipcRenderer.send(this.#AppEvents.ElectronCacheValues, true);
+  }
+
+  /**
+   * Sends a request to forcibly focus the application window, even if it’s not currently visible or active.
+   * @returns {Promise<void>}
+   */
+  forceFocus() {
+    return this.#ipcRequest.send(this.#AppEvents.ForceFocusWindow);
+  }
+
+  /**
+   * Brings the application window to the front and gives it focus.
+   * @returns {Promise<void>}
+   */
+  focus() {
+    return this.#ipcRequest.send(this.#AppEvents.FocusWindow);
+  }
+
+  /**
+   * Removes focus from the application window, if currently focused.
+   * @returns {Promise<void>}
+   */
+  blur() {
+    return this.#ipcRequest.send(this.#AppEvents.BlurWindow);
+  }
+
+  /**
+   * Makes the application window visible.
+   * @returns {Promise<void>}
+   */
+  show() {
+    return this.#ipcRequest.send(this.#AppEvents.ShowWindow);
+  }
+
+  /**
+   * Hides the application window from view (but does not quit the app).
+   * @returns {Promise<void>}
+   */
+  hide() {
+    return this.#ipcRequest.send(this.#AppEvents.WindowHide);
+  }
+
+  /**
+   * Maximizes the application window to fill the screen.
+   * @returns {Promise<void>}
+   */
+  maximize() {
+    return this.#ipcRequest.send(this.#AppEvents.WindowMaximize);
+  }
+
+  /**
+   * Restores the application window from maximized state to its previous size.
+   * @returns {Promise<void>}
+   */
+  unmaximize() {
+    return this.#ipcRequest.send(this.#AppEvents.WindowUnmaximize);
+  }
+
+  /**
+   * Minimizes the application window to the taskbar/dock.
+   * @returns {Promise<void>}
+   */
+  minimize() {
+    return this.#ipcRequest.send(this.#AppEvents.WindowMinimize);
+  }
+
+  /**
+   * Requests the application to quit immediately.
+   *
+   * @returns {void}
+   */
+  quit() {
+    return ipcRenderer.send(this.#AppEvents.AppQuit, true);
+  }
+
+  /**
+   * Returns the absolute path to the current executable of the running application.
+   *
+   * @returns {string}
+   */
+  getExecPath() {
+    return process.execPath;
+  }
+
+  /**
+   * Sets the internal visibility flag.
+   *
+   * @param {boolean} isVisible
+   * @returns {Promise<boolean>}
+   */
+  setIsVisible(isVisible) {
+    return this.#ipcRequest.send(this.#AppEvents.ToggleVisible, isVisible);
+  }
+
+  /**
+   * Updates the application's network proxy settings.
+   * Requires an Electron `ProxyConfig` object with appropriate options.
+   *
+   * @param {Electron.ProxyConfig} config
+   * @returns {Promise<void>}
+   */
+  setProxy(config) {
+    return this.#ipcRequest.send(this.#AppEvents.SetProxy, config);
+  }
+
+  /**
+   * Changes the tray icon to the specified image.
+   * `img` should be a valid image file.
+   *
+   * @param {string} img
+   * @param {string} id
+   *
+   * @returns {Promise<void>}
+   */
+  changeTrayIcon(img, id) {
+    if (typeof img !== 'string')
+      throw new TypeError('[changeTrayIcon] The img needs to be a string.');
+    if (typeof id !== 'string')
+      throw new TypeError('[changeTrayIcon] The id needs to be a string.');
+    return this.#ipcRequest.send(this.#AppEvents.ChangeTrayIcon, { img, id });
+  }
+
+  /**
+   * Changes the application window or dock icon (depending on platform).
+   *
+   * @param {string} img
+   * @returns {Promise<void>}
+   */
+  changeAppIcon(img) {
+    if (typeof img !== 'string')
+      throw new TypeError('[changeAppIcon] The img needs to be a string.');
+    return this.#ipcRequest.send(this.#AppEvents.ChangeAppIcon, img);
+  }
+
+  /**
    * @param {string} apiName - The name under which the API will be exposed in the window context.
    * @param {string[]} [enabledMethods] - Optional list of method names to include in the API. All methods are enabled by default.
    * @returns {Partial<TinyElectronClientApi>}
@@ -482,42 +622,31 @@ class TinyElectronClient {
       isFocused: () => this.isFocused(),
       isMaximized: () => this.isMaximized(),
 
-      requestCache: () => ipcRenderer.send(this.#AppEvents.ElectronCacheValues, true),
+      requestCache: () => this.requestCache(),
 
-      forceFocus: () => ipcRenderer.send(this.#AppEvents.ForceFocusWindow, true),
-      focus: () => ipcRenderer.send(this.#AppEvents.FocusWindow, true),
-      blur: () => ipcRenderer.send(this.#AppEvents.BlurWindow, true),
+      forceFocus: () => this.forceFocus(),
+      focus: () => this.focus(),
+      blur: () => this.blur(),
 
-      show: () => ipcRenderer.send(this.#AppEvents.ShowWindow, true),
-      hide: () => ipcRenderer.send(this.#AppEvents.WindowHide, true),
+      show: () => this.show(),
+      hide: () => this.hide(),
 
-      maximize: () => ipcRenderer.send(this.#AppEvents.WindowMaximize, true),
-      unmaximize: () => ipcRenderer.send(this.#AppEvents.WindowUnmaximize, true),
-      minimize: () => ipcRenderer.send(this.#AppEvents.WindowMinimize, true),
-      quit: () => ipcRenderer.send(this.#AppEvents.AppQuit, true),
+      maximize: () => this.maximize(),
+      unmaximize: () => this.unmaximize(),
+      minimize: () => this.minimize(),
+      quit: () => this.quit(),
 
       systemIdleTime: () => this.systemIdleTime(),
       systemIdleState: (idleThreshold) => this.systemIdleState(idleThreshold),
 
-      getExecPath: () => process.execPath,
+      getExecPath: () => this.getExecPath(),
 
-      changeTrayIcon: (img, id) => {
-        if (typeof img !== 'string')
-          throw new TypeError('[changeTrayIcon] The img needs to be a string.');
-        if (typeof id !== 'string')
-          throw new TypeError('[changeTrayIcon] The id needs to be a string.');
-        ipcRenderer.send(this.#AppEvents.ChangeTrayIcon, img, id);
-      },
+      changeTrayIcon: (img, id) => this.changeTrayIcon(img, id),
+      changeAppIcon: (img) => this.changeAppIcon(img),
 
-      changeAppIcon: (img) => {
-        if (typeof img !== 'string')
-          throw new TypeError('[changeAppIcon] The img needs to be a string.');
-        ipcRenderer.send(this.#AppEvents.ChangeAppIcon, img);
-      },
+      setIsVisible: (isVisible) => this.setIsVisible(isVisible),
 
-      setIsVisible: (isVisible) => ipcRenderer.send(this.#AppEvents.ToggleVisible, isVisible),
-
-      setProxy: (config) => this.#ipcRequest.send(this.#AppEvents.SetProxy, config),
+      setProxy: (config) => this.setProxy(config),
     };
 
     /** @type {Partial<TinyElectronClientApi>} */

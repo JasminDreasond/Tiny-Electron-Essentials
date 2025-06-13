@@ -17,6 +17,7 @@ import TinyIpcResponder from './IpcResponder.mjs';
 // process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
 /** @typedef {import('./TinyWindowFile.mjs').InitConfig} WinInitFile */
+/** @typedef {import('./IpcResponder.mjs').IPCRespondCallback} IPCRespondCallback */
 
 /**
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.
@@ -378,44 +379,52 @@ class TinyElectronRoot {
       return null;
     };
 
-    ipcMain.on(this.#AppEvents.OpenDevTools, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.OpenDevTools, (event, _value, res) => {
       const win = getWin(event);
       if (win) this.openDevTools(win);
+      res(null);
     });
 
-    ipcMain.on(this.#AppEvents.SetTitle, (event, title) => {
+    this.#ipcResponder.on(this.#AppEvents.SetTitle, (event, title, res) => {
       const win = getWin(event);
       if (win) win.setTitle(title);
+      res(null);
     });
 
-    ipcMain.on(this.#AppEvents.FocusWindow, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.FocusWindow, (event, _value, res) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
           const win = getWin(event);
           if (win) win.focus();
+          res(null);
         }, 200);
+      else res(null);
     });
 
-    ipcMain.on(this.#AppEvents.BlurWindow, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.BlurWindow, (event, _value, res) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
           const win = getWin(event);
           if (win) win.blur();
+          res(null);
         }, 200);
+      else res(null);
     });
 
-    ipcMain.on(this.#AppEvents.ShowWindow, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.ShowWindow, (event, _value, res) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
           const win = getWin(event);
           if (win) win.show();
+          res(null);
         }, 200);
+      else res(null);
     });
 
-    ipcMain.on(this.#AppEvents.ForceFocusWindow, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.ForceFocusWindow, (event, _value, res) => {
       const win = getWin(event);
       if (win)
         setTimeout(() => {
@@ -424,7 +433,9 @@ class TinyElectronRoot {
             win.show();
             win.focus();
           }
+          res(null);
         }, 200);
+      else res(null);
     });
 
     this.#ipcResponder.on(this.#AppEvents.SystemIdleTime, (event, _value, res) => {
@@ -432,7 +443,7 @@ class TinyElectronRoot {
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleTime();
         res(idleSecs);
-      }
+      } else res(null);
     });
 
     this.#ipcResponder.on(this.#AppEvents.SystemIdleState, (event, value, res) => {
@@ -440,101 +451,126 @@ class TinyElectronRoot {
       if (win) {
         const idleState = powerMonitor.getSystemIdleState(value);
         res(idleState);
-      }
+      } else res(null);
     });
 
-    ipcMain.on(this.#AppEvents.ToggleVisible, (event, isVisible) => {
+    this.#ipcResponder.on(this.#AppEvents.ToggleVisible, (event, isVisible, res) => {
       const win = getWinInstance(event);
-      if (win) win.toggleVisible(isVisible === true);
+      if (win) res(win.toggleVisible(isVisible === true));
+      else res(null);
     });
 
     ipcMain.on(this.#AppEvents.AppQuit, () => this.quit());
 
-    /**
-     * Set proxy
-     * @type {(event: Electron.IpcMainEvent, config: Electron.ProxyConfig) => void}
-     */
+    // Set proxy
     this.#ipcResponder.on(this.#AppEvents.SetProxy, (event, config, res) => {
       const win = getWin(event);
       if (win && win.webContents) {
-        win.webContents.session
-          .setProxy(config)
-          .then(() => {
-            if (win && win.webContents) {
-              res(null);
-              win.webContents.send(this.#AppEvents.SetProxy);
-            } else res(null, new Error('Invalid window type'));
-          })
-          .catch((err) => {
-            if (win && win.webContents) {
-              res(null, err);
-              win.webContents.send(this.#AppEvents.SetProxyError, serializeError(err));
-            } else res(null, new Error('Invalid window type'));
-          });
+        this.setProxy(win, config, res);
       } else res(null, new Error('Invalid window type'));
     });
 
     // Window status
-    ipcMain.on(this.#AppEvents.WindowIsMaximized, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.WindowIsMaximized, (event, _value, res) => {
       const win = getWin(event);
       if (win && win.webContents) {
-        win.webContents.send(this.#AppEvents.WindowIsMaximized, win.isMaximized());
-      }
+        const result = win.isMaximized();
+        win.webContents.send(this.#AppEvents.WindowIsMaximized, result);
+        res(result);
+      } else res(null);
     });
 
-    ipcMain.on(this.#AppEvents.WindowMaximize, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.WindowMaximize, (event, _value, res) => {
       const win = getWin(event);
       if (win) win.maximize();
+      res(null);
     });
 
-    ipcMain.on(this.#AppEvents.WindowUnmaximize, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.WindowUnmaximize, (event, _value, res) => {
       const win = getWin(event);
       if (win) win.unmaximize();
+      res(null);
     });
 
-    ipcMain.on(this.#AppEvents.WindowMinimize, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.WindowMinimize, (event, _value, res) => {
       const win = getWin(event);
       if (win) win.minimize();
+      res(null);
     });
 
-    ipcMain.on(this.#AppEvents.WindowHide, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.WindowHide, (event, _value, res) => {
       const win = getWinInstance(event);
-      if (win) win.toggleVisible(false);
+      if (win) res(win.toggleVisible(false));
+      else res(null);
     });
 
-    ipcMain.on(this.#AppEvents.WindowShow, (event) => {
+    this.#ipcResponder.on(this.#AppEvents.WindowShow, (event, _value, res) => {
       const win = getWinInstance(event);
-      if (win) win.toggleVisible(true);
+      if (win) res(win.toggleVisible(true));
+      else res(null);
     });
 
     // Icons
-    ipcMain.on(this.#AppEvents.ChangeAppIcon, (event, img) => {
+    this.#ipcResponder.on(this.#AppEvents.ChangeAppIcon, (event, img, res) => {
+      if (typeof img !== 'string' || img.length === 0)
+        throw new TypeError(`Invalid "img" argument: expected non-empty string, got "${img}"`);
       const win = getWin(event);
-      try {
-        if (typeof img === 'string' && img.length > 0) {
-          if (win) win.setIcon(this.resolveSystemIconPath(img));
-        }
-      } catch (err) {
-        console.error(err);
-      }
+      if (win) win.setIcon(this.resolveSystemIconPath(img));
+      res(null);
     });
 
-    ipcMain.on(this.#AppEvents.ChangeTrayIcon, (event, img, key) => {
-      try {
-        if (
-          typeof img === 'string' &&
-          img.length > 0 &&
-          typeof key === 'string' &&
-          this.hasTray(key)
-        ) {
-          this.getTray(key).setImage(this.resolveSystemIconPath(img));
-        }
-      } catch (err) {
-        console.error(err);
-      }
+    this.#ipcResponder.on(this.#AppEvents.ChangeTrayIcon, (event, { img, key } = {}, res) => {
+      if (typeof img !== 'string' || img.length === 0)
+        throw new TypeError(`Invalid "img" argument: expected non-empty string, got "${img}"`);
+      if (typeof key !== 'string' || key.length === 0)
+        throw new TypeError(`Invalid "key" argument: expected non-empty string, got "${key}"`);
+      this.getTray(key).setImage(this.resolveSystemIconPath(img));
+      res(null);
     });
 
     this.#emit(RootEvents.CreateFirstWindow);
+  }
+
+  /**
+   * Applies a network proxy configuration to a given BrowserWindow instance.
+   *
+   * This method sets the proxy settings for the session associated with the window's webContents.
+   * Upon completion, it emits events back to the renderer process to indicate success or failure.
+   *
+   * If a callback (`res`) is provided, it will be invoked with `(null)` on success,
+   * or with `(null, Error)` on failure.
+   *
+   * @param {BrowserWindow} win - The target BrowserWindow whose session will receive the proxy configuration.
+   * Must be a valid and active window instance.
+   *
+   * @param {Electron.ProxyConfig} config - The proxy configuration object following Electron's ProxyConfig structure.
+   * Example: `{ proxyRules: 'http=myproxy.com:8080;https=myproxy.com:8080', proxyBypassRules: 'localhost' }`
+   *
+   * @param {IPCRespondCallback} [res] - Optional IPC response callback. Called with:
+   * - `(null)` on success,
+   * - `(null, Error)` on failure,
+   * or `(null, Error('Invalid window type'))` if the window is invalid.
+   *
+   * @throws {Error} Throws an error if the provided window (`win`) is invalid (null, destroyed, or missing webContents).
+   *
+   * @returns {void}
+   */
+  setProxy(win, config, res) {
+    this.#isBrowserWindow(win);
+    win.webContents.session
+      .setProxy(config)
+      .then(() => {
+        if (win && win.webContents) {
+          if (typeof res === 'function') res(null);
+          win.webContents.send(this.#AppEvents.SetProxy, config);
+        } else if (typeof res === 'function') res(null, new Error('Invalid window type'));
+      })
+      .catch((err) => {
+        if (win && win.webContents) {
+          if (typeof res === 'function') res(null, err);
+          win.webContents.send(this.#AppEvents.SetProxyError, serializeError(err));
+        } else if (typeof res === 'function') res(null, new Error('Invalid window type'));
+      });
   }
 
   /**
