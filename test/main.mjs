@@ -67,6 +67,13 @@ root.on('CreateFirstWindow', () => {
     fileId: initFile,
   });
 
+  root.setRequestCache(() => ({
+    isQuiting: root.isQuiting(),
+    appStarted: instance.isReady(),
+    firstTime: root.isFirstTime(),
+    appReady: root.isAppReady(),
+  }));
+
   console.log(`Instance index: ${instance.getIndex()}`);
 
   responder.on('get-user-data', async (_event, payload, respond) => {

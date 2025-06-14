@@ -288,6 +288,9 @@ class TinyElectronRoot {
 
   #appDataName;
 
+  /** @type {((data: any) => Record<string, any>) | null} */
+  #requestCache = null;
+
   /** @type {TinyIpcResponder} */
   #ipcResponder;
 
@@ -340,25 +343,24 @@ class TinyElectronRoot {
   }
 
   /**
+   * @param {Electron.IpcMainEvent} event
+   * @returns {BrowserWindow|null}
+   */
+  #getWin(event) {
+    const webContents = event.sender;
+    if (!event.senderFrame) return null;
+    const win = BrowserWindow.fromWebContents(webContents);
+    if (win) return win;
+    return null;
+  }
+
+  /**
    * Executes initialization logic that must only run once.
    * Registers a listener for app quit and emits a creation event for the first window.
    */
   #execFirstTime() {
     if (!this.#firstTime) return;
     this.#firstTime = false;
-
-    /**
-     * @param {Electron.IpcMainEvent} event
-     * @returns {BrowserWindow|null}
-     */
-    const getWin = (event) => {
-      const webContents = event.sender;
-      if (!event.senderFrame) return null;
-      const win = BrowserWindow.fromWebContents(webContents);
-      if (win) return win;
-      return null;
-    };
-
     /**
      * @param {Electron.IpcMainEvent} event
      * @returns {TinyWinInstance|null}
@@ -380,22 +382,22 @@ class TinyElectronRoot {
     };
 
     this.#ipcResponder.on(this.#AppEvents.OpenDevTools, (event, value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) this.openDevTools(win, value);
       res(null);
     });
 
     this.#ipcResponder.on(this.#AppEvents.SetTitle, (event, title, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) win.setTitle(title);
       res(null);
     });
 
     this.#ipcResponder.on(this.#AppEvents.FocusWindow, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win)
         setTimeout(() => {
-          const win = getWin(event);
+          const win = this.#getWin(event);
           if (win) win.focus();
           res(null);
         }, 200);
@@ -403,10 +405,10 @@ class TinyElectronRoot {
     });
 
     this.#ipcResponder.on(this.#AppEvents.BlurWindow, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win)
         setTimeout(() => {
-          const win = getWin(event);
+          const win = this.#getWin(event);
           if (win) win.blur();
           res(null);
         }, 200);
@@ -414,10 +416,10 @@ class TinyElectronRoot {
     });
 
     this.#ipcResponder.on(this.#AppEvents.ShowWindow, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win)
         setTimeout(() => {
-          const win = getWin(event);
+          const win = this.#getWin(event);
           if (win) win.show();
           res(null);
         }, 200);
@@ -425,10 +427,10 @@ class TinyElectronRoot {
     });
 
     this.#ipcResponder.on(this.#AppEvents.ForceFocusWindow, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win)
         setTimeout(() => {
-          const win = getWin(event);
+          const win = this.#getWin(event);
           if (win) {
             win.show();
             win.focus();
@@ -439,7 +441,7 @@ class TinyElectronRoot {
     });
 
     this.#ipcResponder.on(this.#AppEvents.SystemIdleTime, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) {
         const idleSecs = powerMonitor.getSystemIdleTime();
         res(idleSecs);
@@ -447,7 +449,7 @@ class TinyElectronRoot {
     });
 
     this.#ipcResponder.on(this.#AppEvents.SystemIdleState, (event, value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) {
         const idleState = powerMonitor.getSystemIdleState(value);
         res(idleState);
@@ -464,7 +466,7 @@ class TinyElectronRoot {
 
     // Set proxy
     this.#ipcResponder.on(this.#AppEvents.SetProxy, (event, config, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win && win.webContents) {
         this.setProxy(win, config, res);
       } else res(null, new Error('Invalid window type'));
@@ -472,19 +474,19 @@ class TinyElectronRoot {
 
     // Window status
     this.#ipcResponder.on(this.#AppEvents.WindowMaximize, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) win.maximize();
       res(null);
     });
 
     this.#ipcResponder.on(this.#AppEvents.WindowUnmaximize, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) win.unmaximize();
       res(null);
     });
 
     this.#ipcResponder.on(this.#AppEvents.WindowMinimize, (event, _value, res) => {
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) win.minimize();
       res(null);
     });
@@ -505,7 +507,7 @@ class TinyElectronRoot {
     this.#ipcResponder.on(this.#AppEvents.ChangeAppIcon, (event, img, res) => {
       if (typeof img !== 'string' || img.length === 0)
         throw new TypeError(`Invalid "img" argument: expected non-empty string, got "${img}"`);
-      const win = getWin(event);
+      const win = this.#getWin(event);
       if (win) win.setIcon(this.resolveSystemIconPath(img));
       res(null);
     });
@@ -625,6 +627,35 @@ class TinyElectronRoot {
    */
   getIpcResponder() {
     return this.#ipcResponder;
+  }
+
+  /**
+   * Registers a callback function responsible for providing cache data to be sent
+   * to renderer processes upon request.
+   *
+   * This method can only be called **once** during the application's lifecycle.
+   * Any attempt to register multiple callbacks will result in an error.
+   *
+   * Once set, this callback is triggered when a renderer sends an event
+   * requesting cache values (`ElectronCacheValues`). The response is automatically
+   * sent back to the requesting renderer.
+   *
+   * @param {(data: any) => Record<string, any>} callback - A function that returns the current cache data as an object.
+   *
+   * @throws {Error} Throws an error if a cache request callback is already registered.
+   * Error message: `"Cache request callback has already been set."`
+   *
+   * @returns {void}
+   */
+  setRequestCache(callback) {
+    if (this.#requestCache) throw new Error('Cache request callback has already been set.');
+    this.#requestCache = callback;
+    this.#ipcResponder.on(this.#AppEvents.ElectronCacheValues, (event, value, res) => {
+      const win = this.#getWin(event);
+      if (win && win.webContents && typeof this.#requestCache === 'function') {
+        res(this.#requestCache(value));
+      } else res(null);
+    });
   }
 
   /**

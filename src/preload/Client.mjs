@@ -57,7 +57,7 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * @property {() => Record<string, any>} getCache
  *
  * Sends a request to the main process to update and resend the latest cache state.
- * @property {() => void} requestCache
+ * @property {() => Promise<Record<string, *>>} requestCache
  *
  * Sends a request to forcibly focus the application window, even if it’s not currently visible or active.
  * @property {() => Promise<void>} forceFocus
@@ -462,10 +462,10 @@ class TinyElectronClient {
 
   /**
    * Sends a request to the main process to update and resend the latest cache state.
-   * @returns {void}
+   * @returns {Promise<Record<string, *>>}
    */
   requestCache() {
-    ipcRenderer.send(this.#AppEvents.ElectronCacheValues, true);
+    return this.#ipcRequest.send(this.#AppEvents.ElectronCacheValues);
   }
 
   /**
