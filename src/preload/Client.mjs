@@ -3,7 +3,7 @@ import { ipcRenderer, contextBridge } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { deserializeError } from '../global/Utils.mjs';
-import TinyIpcRequestManager from './IpcRequestManager.mjs';
+import TinyIpcRequestManager from './TinyIpcRequestManager.mjs';
 import { getLoadingHtml } from './LoadingHtml.mjs';
 
 /**

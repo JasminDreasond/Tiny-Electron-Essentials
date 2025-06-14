@@ -1,4 +1,4 @@
-import TinyIpcResponder from './IpcResponder.mjs';
+import TinyIpcResponder from './TinyIpcResponder.mjs';
 import TinyElectronRoot from './Root.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
 

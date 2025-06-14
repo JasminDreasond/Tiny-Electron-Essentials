@@ -2,11 +2,11 @@ import { ipcMain } from 'electron';
 import { serializeError } from '../global/Utils.mjs';
 
 /**
- * @typedef {import('../preload/IpcRequestManager.mjs').SendData} SendData
+ * @typedef {import('../preload/TinyIpcRequestManager.mjs').SendData} SendData
  */
 
 /**
- * @typedef {import('../preload/IpcRequestManager.mjs').SendResult} SendResult
+ * @typedef {import('../preload/TinyIpcRequestManager.mjs').SendResult} SendResult
  */
 
 /**

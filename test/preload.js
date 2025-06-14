@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge } = require('electron');
 const { TinyElectronClient } = require('../preload/index.cjs');
 
 const client = new TinyElectronClient();

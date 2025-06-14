@@ -7,9 +7,9 @@ import { release, platform } from 'node:os';
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { deepClone, serializeError } from '../global/Utils.mjs';
-import TinyWinInstance from './WinInstance.mjs';
+import TinyWinInstance from './TinyWinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
-import TinyIpcResponder from './IpcResponder.mjs';
+import TinyIpcResponder from './TinyIpcResponder.mjs';
 
 // Remove electron security warnings
 // This warning only shows in development mode
@@ -17,7 +17,7 @@ import TinyIpcResponder from './IpcResponder.mjs';
 // process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
 
 /** @typedef {import('./TinyWindowFile.mjs').InitConfig} WinInitFile */
-/** @typedef {import('./IpcResponder.mjs').IPCRespondCallback} IPCRespondCallback */
+/** @typedef {import('./TinyIpcResponder.mjs').IPCRespondCallback} IPCRespondCallback */
 
 /**
  * @typedef {Object} NewBrowserOptions - Configuration for the new BrowserWindow.

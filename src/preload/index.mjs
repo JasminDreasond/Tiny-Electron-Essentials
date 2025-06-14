@@ -1,4 +1,4 @@
 import TinyElectronClient from './Client.mjs';
-import TinyIpcRequestManager from './IpcRequestManager.mjs';
+import TinyIpcRequestManager from './TinyIpcRequestManager.mjs';
 
 export { TinyIpcRequestManager, TinyElectronClient };
