@@ -79,10 +79,12 @@ export const AppEvents = {
  * @property {string} Resize             - Emitted when the application window is resized.
  * @property {string} Ready              - Emitted when the application is ready to initialize its core systems.
  * @property {string} CreateFirstWindow  - Emitted to signal the creation of the first application window.
+ * @property {string} ReadyToShow        - Emitted when the window is fully initialized and ready to be displayed, but not yet shown.
+ * @property {string} ShowApp            - Emitted when the window is actually shown to the user, following the 'ReadyToShow' event.
  */
 
 export const RootEvents = {
-  AppShow: 'appShow',
+  AppShow: 'AppShow',
   IsMaximized: 'isMaximized',
   IsFocused: 'isFocused',
   IsVisible: 'isVisible',
@@ -91,4 +93,6 @@ export const RootEvents = {
   Resize: 'resize',
   Ready: 'Ready',
   CreateFirstWindow: 'CreateFirstWindow',
+  ReadyToShow: 'ReadyToShow',
+  ShowApp: 'ShowApp',
 };

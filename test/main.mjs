@@ -1,8 +1,9 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { ipcMain, Tray } from 'electron';
+import { app, Tray } from 'electron';
 import { TinyElectronRoot } from '../main/index.mjs';
+import { RootEvents } from '../global/Events.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,7 +35,7 @@ console.log(appDataPrivate);
 console.log(initFile);
 
 // Tray
-root.on('Ready', () => {
+root.on(RootEvents.Ready, () => {
   const tray = new Tray(root.getIcon());
   tray.setToolTip(root.getTitle());
   tray.setTitle(root.getTitle());
@@ -43,7 +44,7 @@ root.on('Ready', () => {
 });
 
 // Ready to first window
-root.on('CreateFirstWindow', () => {
+root.on(RootEvents.CreateFirstWindow, () => {
   console.log(`gotTheLock: ${root.gotTheLock()}`);
   console.log(`getAppId: ${root.getAppId()}`);
   console.log(`getTitle: ${root.getTitle()}`);
@@ -73,6 +74,14 @@ root.on('CreateFirstWindow', () => {
     firstTime: root.isFirstTime(),
     appReady: root.isAppReady(),
   }));
+
+  root.on(RootEvents.ReadyToShow, () => {
+    instance.ping({
+      exe: app.getPath('exe'),
+      icon: root.getIcon(),
+      title: root.getTitle(),
+    });
+  });
 
   console.log(`Instance index: ${instance.getIndex()}`);
 

@@ -1,6 +1,6 @@
 import { BrowserWindow, shell } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
-import { AppEvents } from '../global/Events.mjs';
+import { AppEvents, RootEvents } from '../global/Events.mjs';
 
 /**
  * Represents a single managed Electron BrowserWindow instance.
@@ -157,7 +157,7 @@ class TinyWinInstance {
     this.#visible = changeVisibleTo;
     if (this.#win && this.#win.webContents)
       this.#win.webContents.send(this.#AppEvents.ShowApp, changeVisibleTo);
-    this.#emit('ShowApp', this.#index, changeVisibleTo);
+    this.#emit(RootEvents.ShowApp, this.#index, changeVisibleTo);
     return changeVisibleTo;
   }
 
@@ -296,7 +296,7 @@ class TinyWinInstance {
       this.#ready = true;
       this.toggleVisible(show);
       if (isMaximized && show) this.#win.maximize();
-      this.#emit('ReadyToShow', this.#index, ...args);
+      this.#emit(RootEvents.ReadyToShow, this.#index, ...args);
     });
 
     // Resize
