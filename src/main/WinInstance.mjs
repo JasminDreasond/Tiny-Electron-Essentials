@@ -162,6 +162,24 @@ class TinyWinInstance {
   }
 
   /**
+   * Sends a ping event with custom data to the renderer process.
+   *
+   * This method allows the main process to send arbitrary data to the window
+   * via the `Ping` event. It is commonly used for connection checks,
+   * heartbeat signals, or simple data synchronization.
+   *
+   * @param {any} data - Any serializable data to send along with the ping event.
+   *
+   * @throws {Error} Throws an error if the window instance is destroyed or unavailable.
+   *
+   * @returns {void}
+   */
+  ping(data) {
+    this.#checkDestroy();
+    if (this.#win.webContents) this.#win.webContents.send(this.#AppEvents.Ping, data);
+  }
+
+  /**
    * Checks whether the given IPC event originated from this window instance.
    *
    * This is useful when multiple windows exist and you want to ensure an IPC event

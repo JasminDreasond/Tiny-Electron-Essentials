@@ -464,8 +464,10 @@ class TinyElectronClient {
    * Sends a request to the main process to update and resend the latest cache state.
    * @returns {Promise<Record<string, *>>}
    */
-  requestCache() {
-    return this.#ipcRequest.send(this.#AppEvents.ElectronCacheValues);
+  async requestCache() {
+    const result = await this.#ipcRequest.send(this.#AppEvents.ElectronCacheValues);
+    this.#setCache(result);
+    return result;
   }
 
   /**
@@ -881,7 +883,6 @@ class TinyElectronClient {
     });
 
     ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) => this.#firstPing(arg));
-    ipcRenderer.on(this.#AppEvents.ElectronCacheValues, (_event, msg) => this.#setCache(msg));
   }
 }
 
