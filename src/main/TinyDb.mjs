@@ -30,6 +30,7 @@ class TinyDb {
    * @type {QueryRequest}
    */
   #get = (query = '', params = []) => {
+    console.warn('[TinyDb Debug] Called "get" with:', { query, params });
     throw new Error('TinyDb: "get" function is not defined.');
   };
 
@@ -40,6 +41,7 @@ class TinyDb {
    * @type {QueryRequest}
    */
   #run = (query = '', params = []) => {
+    console.warn('[TinyDb Debug] Called "run" with:', { query, params });
     throw new Error('TinyDb: "run" function is not defined.');
   };
 
@@ -49,6 +51,7 @@ class TinyDb {
    * @type {QueryRequest}
    */
   #all = (query = '', params = []) => {
+    console.warn('[TinyDb Debug] Called "all" with:', { query, params });
     throw new Error('TinyDb: "all" function is not defined.');
   };
 
@@ -58,6 +61,7 @@ class TinyDb {
    * @type {QueryRequest}
    */
   #query = (query = '', params = []) => {
+    console.warn('[TinyDb Debug] Called "query" with:', { query, params });
     throw new Error('TinyDb: "query" function is not defined.');
   };
 
