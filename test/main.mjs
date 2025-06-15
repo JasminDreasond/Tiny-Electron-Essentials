@@ -2,7 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { app, Tray } from 'electron';
-import { TinyElectronRoot } from '../main/index.mjs';
+import { TinyDb, TinyElectronRoot } from '../main/index.mjs';
 import { RootEvents } from '../global/Events.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -100,3 +100,30 @@ root.on(RootEvents.CreateFirstWindow, () => {
 
 // Init app
 root.init();
+
+// Tiny Db
+const tinyDb = new TinyDb(responder, 'db');
+
+// Mock database functions
+tinyDb.setGet(async (query, params) => {
+  console.log('DB get:', query, params);
+  return { id: 1, name: 'Test Row' };
+});
+
+tinyDb.setAll(async (query, params) => {
+  console.log('DB all:', query, params);
+  return [
+    { id: 1, name: 'Row 1' },
+    { id: 2, name: 'Row 2' },
+  ];
+});
+
+tinyDb.setRun(async (query, params) => {
+  console.log('DB run:', query, params);
+  return { success: true };
+});
+
+tinyDb.setQuery(async (query, params) => {
+  console.log('DB query:', query, params);
+  return { result: 'Some result' };
+});
