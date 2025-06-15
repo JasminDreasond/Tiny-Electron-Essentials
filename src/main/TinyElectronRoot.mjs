@@ -552,17 +552,19 @@ class TinyElectronRoot {
     this.#isBrowserWindow(win);
     win.webContents.session
       .setProxy(config)
-      .then(() => {
+      .then((data) => {
         if (win && win.webContents) {
           if (typeof res === 'function') res(null);
           win.webContents.send(this.#AppEvents.SetProxy, config);
         } else if (typeof res === 'function') res(null, new Error('Invalid window type'));
+        return data;
       })
       .catch((err) => {
         if (win && win.webContents) {
           if (typeof res === 'function') res(null, err);
           win.webContents.send(this.#AppEvents.SetProxyError, serializeError(err));
         } else if (typeof res === 'function') res(null, new Error('Invalid window type'));
+        return err;
       });
   }
 
@@ -723,6 +725,7 @@ class TinyElectronRoot {
         emit: (event, ...args) => this.emit(event, ...args),
         loadPath: (win, page, ops) => this.loadPath(win, page, ops),
         openDevTools: (win, ops) => this.openDevTools(win, ops),
+        setProxy: (win, config) => this.setProxy(win, config),
       },
       {
         config: cfg,

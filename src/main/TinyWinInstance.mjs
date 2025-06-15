@@ -11,6 +11,7 @@ import { AppEvents, RootEvents } from '../global/Events.mjs';
 class TinyWinInstance {
   /** @typedef {function(string | symbol, ...any): void} Emit */
   /** @typedef {(win: Electron.BrowserWindow, ops?: Electron.OpenDevToolsOptions) => void} OpenDevTools */
+  /** @typedef {(win: Electron.BrowserWindow, config: Electron.ProxyConfig) => void} SetProxy */
   /** @typedef {(win: Electron.BrowserWindow, page: string|string[], ops?: Electron.LoadFileOptions|Electron.LoadURLOptions) => void} LoadPath */
 
   #AppEvents = AppEvents;
@@ -67,6 +68,11 @@ class TinyWinInstance {
   #openDevTools;
 
   /**
+   * @type {SetProxy}
+   */
+  #setProxy;
+
+  /**
    * @type {LoadPath}
    */
   #loadPath;
@@ -117,6 +123,24 @@ class TinyWinInstance {
   openDevTools(ops) {
     this.#checkDestroy();
     return this.#openDevTools(this.#win, ops);
+  }
+
+  /**
+   * Applies a network proxy configuration.
+   *
+   * This method sets the proxy settings for the session.
+   * Upon completion, it emits events back to the renderer process to indicate success or failure.
+   *
+   * @param {Electron.ProxyConfig} config - The proxy configuration object following Electron's ProxyConfig structure.
+   * Example: `{ proxyRules: 'http=myproxy.com:8080;https=myproxy.com:8080', proxyBypassRules: 'localhost' }`
+   *
+   * @throws {Error} Throws an error if the provided window (`win`) is invalid (null, destroyed, or missing webContents).
+   *
+   * @returns {void}
+   */
+  setProxy(config) {
+    this.#checkDestroy();
+    return this.#setProxy(this.#win, config);
   }
 
   /**
@@ -200,6 +224,7 @@ class TinyWinInstance {
   /**
    * @param {Object} [settings2={}] - Configuration for the new instance.
    * @param {Emit} [settings2.emit] - The root controller or application class managing this instance.
+   * @param {SetProxy} [settings2.setProxy] - SetProxy callback.
    * @param {OpenDevTools} [settings2.openDevTools] - OpenDevTools callback.
    * @param {LoadPath} [settings2.loadPath] - Load path callback.
    * @param {AppEvents} [settings2.eventNames=this.#AppEvents] - Set of event names for internal messaging.
@@ -213,7 +238,7 @@ class TinyWinInstance {
    * @throws {Error} If any parameter is invalid.
    */
   constructor(
-    { eventNames = this.#AppEvents, emit, loadPath, openDevTools } = {},
+    { eventNames = this.#AppEvents, emit, loadPath, openDevTools, setProxy } = {},
     {
       config,
       index,
@@ -246,6 +271,8 @@ class TinyWinInstance {
       throw new Error(`[Window Creation Error] 'loadPath' must be a loadPath.`);
     if (typeof openDevTools !== 'function')
       throw new Error(`[Window Creation Error] 'openDevTools' must be a openDevTools.`);
+    if (typeof setProxy !== 'function')
+      throw new Error(`[Window Creation Error] 'setProxy' must be a setProxy.`);
 
     if (!isJsonObject(config))
       throw new Error('[Window Creation Error] Expected "config" to be an object.');
@@ -273,6 +300,7 @@ class TinyWinInstance {
     this.#win = new BrowserWindow(config);
     this.#emit = emit;
     this.#openDevTools = openDevTools;
+    this.#setProxy = setProxy;
     this.#loadPath = loadPath;
     this.#index = typeof index === 'number' || typeof index === 'string' ? index : null;
     this.#visible = show;
