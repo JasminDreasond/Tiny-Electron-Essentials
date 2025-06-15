@@ -1,4 +1,4 @@
 import { AppEvents, RootEvents } from './Events.mjs';
-import { deserializeError, serializeError } from './Utils.mjs';
+import { deepClone, deserializeError, serializeError } from './Utils.mjs';
 
-export { serializeError, deserializeError, AppEvents, RootEvents };
+export { serializeError, deserializeError, deepClone, AppEvents, RootEvents };

@@ -1,17 +1,25 @@
 /**
- * @typedef {Error & { code?: any, data?: any }} ErrorParsed
+ * An extended error object that may contain additional metadata.
+ *
+ * @typedef {Error & {
+ *   code?: any,   // Optional error code, any type.
+ *   data?: any    // Optional additional error data.
+ * }} ErrorParsed
  */
 
 /**
- * @param {ErrorParsed} error
+ * Converts an `Error` object into a plain JSON-serializable object.
+ * Useful for sending errors between processes or over the network.
+ *
+ * @param {ErrorParsed} error - The error object to serialize.
  * @returns {{
- *   name: string,
- *   message: string,
- *   stack?: string,
- *   code?: any,
- *   data?: any
+ *   name: string,          // Error name (e.g., 'TypeError')
+ *   message: string,       // Error message
+ *   stack?: string,        // Optional stack trace
+ *   code?: any,            // Optional error code
+ *   data?: any             // Optional additional error data
  * }}
- * @throws {Error}
+ * @throws {Error} Throws if the input is not a valid error object.
  */
 export function serializeError(error) {
   if (typeof error !== 'object' || error === null)
@@ -31,15 +39,18 @@ export function serializeError(error) {
 }
 
 /**
+ * Converts a plain JSON object back into an `Error` instance.
+ * Useful for reconstructing errors received over IPC or network.
+ *
  * @param {{
- *   name?: string,
- *   message: string,
- *   stack?: string,
- *   code?: any,
- *   data?: any
- * }} json
- * @returns {ErrorParsed}
- * @throws {Error}
+ *   name?: string,        // Optional error name (defaults to 'Error')
+ *   message: string,      // Error message
+ *   stack?: string,       // Optional stack trace
+ *   code?: any,           // Optional error code
+ *   data?: any            // Optional additional error data
+ * }} json - The JSON object representing the error.
+ * @returns {ErrorParsed} The reconstructed error object.
+ * @throws {Error} Throws if the input JSON does not match the expected structure.
  */
 export function deserializeError(json) {
   if (typeof json !== 'object' || json === null)
@@ -60,8 +71,12 @@ export function deserializeError(json) {
 }
 
 /**
- * @param {*} obj
- * @returns {*}
+ * Performs a deep clone of an object, array, or date.
+ * Useful for creating fully independent copies of nested structures.
+ *
+ * @param {*} obj - The object to clone. Supports plain objects, arrays, and Date instances.
+ * @returns {*} A deep-cloned copy of the input.
+ * @throws {Error} Throws if the input type is not supported (e.g., functions, Map, Set).
  */
 export function deepClone(obj) {
   if (obj === null || typeof obj !== 'object') return obj;
