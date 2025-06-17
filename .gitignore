@@ -12,6 +12,10 @@
 !src/main/
 !src/preload/
 
+!docs/global/
+!docs/main/
+!docs/preload/
+
 # Logs
 logs
 *.log
