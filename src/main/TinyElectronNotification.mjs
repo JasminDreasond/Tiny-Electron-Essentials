@@ -43,7 +43,10 @@ class TinyElectronNotification {
     const noti = new Notification(data);
     this.#notifications.set(tag, noti);
 
+    let clearEnabled = false;
     const clearNotification = async () => {
+      if (clearEnabled) return;
+      clearEnabled = true;
       try {
         if (
           this.#notifications.has(tag) &&
