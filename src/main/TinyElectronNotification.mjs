@@ -43,56 +43,63 @@ class TinyElectronNotification {
     const noti = new Notification(data);
     this.#notifications.set(tag, noti);
 
-    noti.on('show', () => {
-      if (win && win.webContents) {
-        const nEvent = { tag };
-        win.webContents.send(this.#Events.Show, nEvent);
-        win.webContents.send(this.#Events.All, { type: 'show', ...nEvent });
-      }
-    });
-
-    noti.on('click', () => {
-      if (win && win.webContents) {
-        const nEvent = { tag };
-        win.webContents.send(this.#Events.Click, nEvent);
-        win.webContents.send(this.#Events.All, { type: 'click', ...nEvent });
-      }
-    });
-
-    noti.on('reply', (_e, reply) => {
-      if (win && win.webContents) {
-        const nEvent = { tag, reply };
-        win.webContents.send(this.#Events.Reply, nEvent);
-        win.webContents.send(this.#Events.All, { type: 'reply', ...nEvent });
-      }
-    });
-
-    noti.on('action', (_e, index) => {
-      if (win && win.webContents) {
-        const nEvent = { tag, index };
-        win.webContents.send(this.#Events.Action, nEvent);
-        win.webContents.send(this.#Events.All, { type: 'action', ...nEvent });
-      }
-    });
-
-    noti.on('failed', (_e, error) => {
-      if (win && win.webContents) win.webContents.send(this.#Events.Failed, { tag, error });
-    });
-
-    noti.on('close', () => {
+    const clearNotification = async () => {
       try {
-        if (this.#notifications.has(tag)) {
-          this.#notifications.delete(tag);
-          if (win && win.webContents) win.webContents.send(this.#Events.Close, { tag });
-
-          if (iconCache.isBase64 && typeof iconCache.iconFile === 'string') {
-            const filePath = path.join(this.#folderPath, `./${iconCache.iconFile}`);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-          }
+        if (
+          this.#notifications.has(tag) &&
+          iconCache.isBase64 &&
+          typeof iconCache.iconFile === 'string'
+        ) {
+          const filePath = path.join(this.#folderPath, `./${iconCache.iconFile}`);
+          if (fs.existsSync(filePath)) await unlink(filePath);
         }
       } catch (err) {
         console.error(err);
       }
+      if (this.#notifications.has(tag)) this.#notifications.delete(tag);
+    };
+
+    /**
+     * @param {string} eventName
+     * @param {string} eventType
+     * @param {Record<string|number|symbol, any>} nEvent
+     */
+    const sendEvent = (eventName, eventType, nEvent = {}) => {
+      if (win && win.webContents) {
+        const event = { tag, ...nEvent };
+        win.webContents.send(eventName, event);
+        win.webContents.send(this.#Events.All, { type: eventType, ...event });
+      }
+    };
+
+    noti.on('show', () => {
+      sendEvent(this.#Events.Show, 'show');
+      clearNotification();
+    });
+
+    noti.on('click', () => {
+      sendEvent(this.#Events.Click, 'click');
+      clearNotification();
+    });
+
+    noti.on('reply', (_e, reply) => {
+      sendEvent(this.#Events.Reply, 'reply', { reply });
+      clearNotification();
+    });
+
+    noti.on('action', (_e, index) => {
+      sendEvent(this.#Events.Action, 'action', { index });
+      clearNotification();
+    });
+
+    noti.on('failed', (_e, error) => {
+      sendEvent(this.#Events.Failed, 'failed', { error });
+      clearNotification();
+    });
+
+    noti.on('close', () => {
+      sendEvent(this.#Events.Close, 'close');
+      clearNotification();
     });
 
     // Send Confirm
