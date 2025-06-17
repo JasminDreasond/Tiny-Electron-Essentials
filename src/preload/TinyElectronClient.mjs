@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { ipcRenderer, contextBridge } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
-import { deserializeError } from '../global/Utils.mjs';
+import { checkEventsList, deserializeError } from '../global/Utils.mjs';
 import TinyIpcRequestManager from './TinyIpcRequestManager.mjs';
 import { getLoadingHtml } from './LoadingHtml.mjs';
 
@@ -832,23 +832,7 @@ class TinyElectronClient {
    * @throws {Error} If any required string values are missing or invalid.
    */
   constructor({ ipcReceiverChannel, eventNames = { ...this.#AppEvents } } = {}) {
-    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
-    for (const key in this.#AppEvents) {
-      // @ts-ignore
-      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
-        throw new Error(
-          // @ts-ignore
-          `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
-        );
-    }
-
-    for (const key in eventNames) {
-      // @ts-ignore
-      if (typeof eventNames[key] === 'string')
-        // @ts-ignore
-        this.#AppEvents[key] = eventNames[key];
-    }
-
+    checkEventsList(eventNames, this.#AppEvents);
     this.#ipcRequest = new TinyIpcRequestManager(ipcReceiverChannel);
 
     ipcRenderer.on(this.#AppEvents.Resize, (_event, data) => this.#emit(RootEvents.Resize, data));

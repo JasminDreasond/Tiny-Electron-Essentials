@@ -6,6 +6,7 @@ import { isJsonObject } from 'tiny-essentials';
 
 import TinyIpcResponder from './TinyIpcResponder.mjs';
 import { NotificationEvents } from '../global/Events.mjs';
+import { checkEventsList } from '../global/Utils.mjs';
 
 /**  @typedef {Electron.NotificationConstructorOptions & { tag?: string; }} NotificationConstructorOptions */
 
@@ -161,23 +162,7 @@ class TinyElectronNotification {
 
     this.#ipcResponder = ipcResponder;
     this.#folderPath = folderPath;
-
-    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
-    for (const key in this.#Events) {
-      // @ts-ignore
-      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
-        throw new Error(
-          // @ts-ignore
-          `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
-        );
-    }
-
-    for (const key in eventNames) {
-      // @ts-ignore
-      if (typeof eventNames[key] === 'string')
-        // @ts-ignore
-        this.#Events[key] = eventNames[key];
-    }
+    checkEventsList(eventNames, this.#Events);
 
     this.#ipcResponder.on(
       this.#Events.Create,

@@ -6,7 +6,7 @@ import { release, platform } from 'node:os';
 
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
-import { deepClone, serializeError } from '../global/Utils.mjs';
+import { checkEventsList, deepClone, serializeError } from '../global/Utils.mjs';
 import TinyWinInstance from './TinyWinInstance.mjs';
 import TinyWindowFile from './TinyWindowFile.mjs';
 import TinyIpcResponder from './TinyIpcResponder.mjs';
@@ -978,23 +978,7 @@ class TinyElectronRoot {
     appDataName,
     minimizeOnClose = false,
   } = {}) {
-    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
-    for (const key in this.#AppEvents) {
-      // @ts-ignore
-      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
-        throw new Error(
-          // @ts-ignore
-          `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
-        );
-    }
-
-    for (const key in eventNames) {
-      // @ts-ignore
-      if (typeof eventNames[key] === 'string')
-        // @ts-ignore
-        this.#AppEvents[key] = eventNames[key];
-    }
-
+    checkEventsList(eventNames, this.#AppEvents);
     if (typeof urlBase !== 'string')
       throw new TypeError(
         'Expected "urlBase" to be a string. Provide a valid application urlBase.',

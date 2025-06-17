@@ -1,6 +1,7 @@
 import { BrowserWindow, shell } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
+import { checkEventsList } from '../global/Utils.mjs';
 
 /**
  * Represents a single managed Electron BrowserWindow instance.
@@ -248,23 +249,7 @@ class TinyWinInstance {
       urls = ['https:', 'http:'],
     } = {},
   ) {
-    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
-    for (const key in this.#AppEvents) {
-      // @ts-ignore
-      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
-        throw new Error(
-          // @ts-ignore
-          `[#Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
-        );
-    }
-
-    for (const key in eventNames) {
-      // @ts-ignore
-      if (typeof eventNames[key] === 'string')
-        // @ts-ignore
-        this.#AppEvents[key] = eventNames[key];
-    }
-
+    checkEventsList(eventNames, this.#AppEvents);
     if (typeof emit !== 'function')
       throw new Error(`[Window Creation Error] 'emit' must be a event emit.`);
     if (typeof loadPath !== 'function')

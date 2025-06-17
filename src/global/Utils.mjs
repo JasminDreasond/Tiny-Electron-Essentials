@@ -1,3 +1,5 @@
+import { isJsonObject } from 'tiny-essentials';
+
 /**
  * An extended error object that may contain additional metadata.
  *
@@ -96,3 +98,40 @@ export function deepClone(obj) {
 
   throw new Error('Unsupported type');
 }
+
+/**
+ * Validates and synchronizes event name constants between two objects.
+ *
+ * This function checks if the `eventNames` object contains string values
+ * for keys present in the `list` object. If valid, it copies the values
+ * from `eventNames` into `list`. If a value in `eventNames` is not a string,
+ * it throws an error. Additionally, it ensures that `eventNames` is a valid object.
+ *
+ * @param {Record<string, string>} eventNames
+ * An object containing event name keys and their corresponding string values.
+ *
+ * @param {Record<string, string>} list
+ * The target object where valid event names from `eventNames` will be copied to.
+ * This object is modified in-place.
+ *
+ * @throws {TypeError} If `eventNames` is not a valid JSON object.
+ * @throws {Error} If any value in `eventNames` (for keys that exist in `list`) is not a string.
+ */
+export const checkEventsList = (eventNames, list) => {
+  if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
+  for (const key in list) {
+    // @ts-ignore
+    if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
+      throw new Error(
+        // @ts-ignore
+        `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
+      );
+  }
+
+  for (const key in eventNames) {
+    // @ts-ignore
+    if (typeof eventNames[key] === 'string')
+      // @ts-ignore
+      list[key] = eventNames[key];
+  }
+};

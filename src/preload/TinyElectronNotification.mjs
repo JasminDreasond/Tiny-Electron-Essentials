@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { isJsonObject } from 'tiny-essentials';
 import TinyIpcRequestManager from './TinyIpcRequestManager.mjs';
 import { NotificationEvents } from '../global/Events.mjs';
+import { checkEventsList } from '../global/Utils.mjs';
 
 /**  @typedef {Electron.NotificationConstructorOptions & { tag?: string; }} NotificationConstructorOptions */
 
@@ -239,26 +240,10 @@ class TinyElectronNotification {
    * @throws {Error} If `id` is not a string.
    */
   constructor({ ipcRequest, eventNames = this.#Events } = {}) {
+    checkEventsList(eventNames, this.#Events);
     if (!(ipcRequest instanceof TinyIpcRequestManager))
       throw new Error('ipcRequest must be an instance of TinyIpcRequestManager.');
     this.#ipcRequest = ipcRequest;
-
-    if (!isJsonObject(eventNames)) throw new TypeError('Expected "eventNames" to be an object.');
-    for (const key in this.#Events) {
-      // @ts-ignore
-      if (typeof eventNames[key] !== 'undefined' && typeof eventNames[key] !== 'string')
-        throw new Error(
-          // @ts-ignore
-          `[Events] Value of key "${eventNames[key]}" must be a string. Got: ${typeof eventNames[key]}`,
-        );
-    }
-
-    for (const key in eventNames) {
-      // @ts-ignore
-      if (typeof eventNames[key] === 'string')
-        // @ts-ignore
-        this.#Events[key] = eventNames[key];
-    }
 
     /** @param {string} tag */
     const clearNotification = (tag) => {
