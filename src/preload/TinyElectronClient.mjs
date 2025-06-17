@@ -115,6 +115,7 @@ class TinyElectronClient {
   /** @typedef {import('./LoadingHtml.mjs').GetLoadingHtml} GetLoadingHtml */
 
   #AppEvents = AppEvents;
+  #exposeInMainWorld = '';
 
   /**
    * Checks if a given value exists in the AppEvents values.
@@ -639,8 +640,13 @@ class TinyElectronClient {
    * @returns {Partial<TinyElectronClientApi>}
    */
   installWinScript(apiName = 'electronWindow', enabledMethods) {
-    if (typeof apiName !== 'string')
-      throw new TypeError('[installWinScript] The apiName needs to be a string.');
+    if (this.#exposeInMainWorld.length > 0)
+      throw new Error(
+        `[installWinScript] API '${this.#exposeInMainWorld}' is already exposed in the main world.`,
+      );
+    if (typeof apiName !== 'string' || apiName.length < 1)
+      throw new Error('[installWinScript] apiName must be a non-empty string.');
+    this.#exposeInMainWorld = apiName;
 
     /** @type {TinyElectronClientApi} */
     const apiTemplate = {

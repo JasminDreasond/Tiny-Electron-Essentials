@@ -2,7 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { app, Tray } from 'electron';
-import { TinyDb, TinyElectronRoot } from '../main/index.mjs';
+import { TinyDb, TinyElectronNotification, TinyElectronRoot } from '../main/index.mjs';
 import { RootEvents } from '../global/Events.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,9 +26,17 @@ root.installWinProtection();
 
 // Init appData
 root.initAppDataDir();
+root.initAppDataDir('temp');
 root.initAppDataSubdir('tiny-test');
 const appDataPrivate = root.getAppDataSubdir('tiny-test');
 const initFile = path.join(appDataPrivate, 'init.json');
+
+const notifications = new TinyElectronNotification({
+  ipcResponder: responder,
+  folderPath: root.initAppDataSubdir('notifications', 'temp'),
+});
+
+notifications.deleteAllFilesInDir();
 
 console.log(root.getAppDataDir());
 console.log(appDataPrivate);

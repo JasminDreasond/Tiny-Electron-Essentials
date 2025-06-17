@@ -1,5 +1,5 @@
 const { contextBridge } = require('electron');
-const { TinyElectronClient, TinyDb } = require('../preload/index.cjs');
+const { TinyElectronClient, TinyDb, TinyElectronNotification } = require('../preload/index.cjs');
 
 // Init
 const client = new TinyElectronClient();
@@ -20,6 +20,10 @@ const manager = client.getIpcRequest();
 // Tiny Db
 const tinyDb = new TinyDb(manager, 'db');
 tinyDb.exposeInMainWorld('tinyDb');
+
+// Notifications
+const notifications = new TinyElectronNotification({ ipcRequest: manager });
+notifications.installWinScript();
 
 // Test
 contextBridge.exposeInMainWorld('api', {

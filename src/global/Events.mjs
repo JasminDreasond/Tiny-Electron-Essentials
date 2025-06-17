@@ -96,3 +96,26 @@ export const RootEvents = {
   ReadyToShow: 'ReadyToShow',
   ShowApp: 'ShowApp',
 };
+
+/**
+ * @typedef {Object} NotificationEvents
+ * @property {string} Create - Event triggered when a new notification is created.
+ * @property {string} Show - Event triggered when a notification is shown to the user.
+ * @property {string} All - Event triggered for any notification-related activity.
+ * @property {string} Click - Event triggered when the user clicks on a notification.
+ * @property {string} Reply - Event triggered when the user replies to a notification (if supported).
+ * @property {string} Action - Event triggered when the user interacts with an action button in the notification.
+ * @property {string} Failed - Event triggered when showing or creating a notification fails.
+ * @property {string} Close - Event triggered when a notification is closed or dismissed.
+ */
+
+export const NotificationEvents = {
+  Create: 'tiny-notification-create',
+  Show: 'tiny-notification-show',
+  All: 'tiny-notification-all',
+  Click: 'tiny-notification-click',
+  Reply: 'tiny-notification-reply',
+  Action: 'tiny-notification-action',
+  Failed: 'tiny-notification-failed',
+  Close: 'tiny-notification-close',
+};
