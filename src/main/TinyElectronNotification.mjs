@@ -43,7 +43,7 @@ class TinyElectronNotification {
     const noti = new Notification(data);
     this.#notifications.set(tag, noti);
 
-    noti.on('show', (event) => {
+    noti.on('show', () => {
       if (win && win.webContents) {
         const nEvent = { tag };
         win.webContents.send(this.#Events.Show, nEvent);
@@ -51,7 +51,7 @@ class TinyElectronNotification {
       }
     });
 
-    noti.on('click', (event) => {
+    noti.on('click', () => {
       if (win && win.webContents) {
         const nEvent = { tag };
         win.webContents.send(this.#Events.Click, nEvent);
@@ -59,7 +59,7 @@ class TinyElectronNotification {
       }
     });
 
-    noti.on('reply', (event, reply) => {
+    noti.on('reply', (_e, reply) => {
       if (win && win.webContents) {
         const nEvent = { tag, reply };
         win.webContents.send(this.#Events.Reply, nEvent);
@@ -67,7 +67,7 @@ class TinyElectronNotification {
       }
     });
 
-    noti.on('action', (event, index) => {
+    noti.on('action', (_e, index) => {
       if (win && win.webContents) {
         const nEvent = { tag, index };
         win.webContents.send(this.#Events.Action, nEvent);
@@ -75,11 +75,11 @@ class TinyElectronNotification {
       }
     });
 
-    noti.on('failed', (event, error) => {
+    noti.on('failed', (_e, error) => {
       if (win && win.webContents) win.webContents.send(this.#Events.Failed, { tag, error });
     });
 
-    noti.on('close', (event) => {
+    noti.on('close', () => {
       try {
         if (this.#notifications.has(tag)) {
           this.#notifications.delete(tag);
