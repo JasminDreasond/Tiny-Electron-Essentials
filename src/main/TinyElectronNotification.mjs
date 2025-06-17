@@ -43,6 +43,7 @@ class TinyElectronNotification {
     const noti = new Notification(data);
     this.#notifications.set(tag, noti);
 
+    // Clear
     let clearEnabled = false;
     const clearNotification = async () => {
       if (clearEnabled) return;
@@ -75,37 +76,42 @@ class TinyElectronNotification {
       }
     };
 
+    // Show
     noti.on('show', () => {
       sendEvent(this.#Events.Show, 'show');
-      clearNotification();
     });
 
+    // Click
     noti.on('click', () => {
       sendEvent(this.#Events.Click, 'click');
       clearNotification();
     });
 
+    // Reply
     noti.on('reply', (_e, reply) => {
       sendEvent(this.#Events.Reply, 'reply', { reply });
       clearNotification();
     });
 
+    // Action
     noti.on('action', (_e, index) => {
       sendEvent(this.#Events.Action, 'action', { index });
       clearNotification();
     });
 
+    // Failed
     noti.on('failed', (_e, error) => {
       sendEvent(this.#Events.Failed, 'failed', { error });
       clearNotification();
     });
 
+    // Close
     noti.on('close', () => {
       sendEvent(this.#Events.Close, 'close');
       clearNotification();
     });
 
-    // Send Confirm
+    // Complete
     res({
       tag,
       isSupported: Notification.isSupported(),

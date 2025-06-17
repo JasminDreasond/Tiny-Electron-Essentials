@@ -260,45 +260,59 @@ class TinyElectronNotification {
         this.#Events[key] = eventNames[key];
     }
 
+    /** @param {string} tag */
+    const clearNotification = (tag) => {
+      if (this.#notifications.has(tag)) this.#notifications.delete(tag);
+    };
+
+    // Close
     ipcRenderer.on(this.#Events.Close, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
-      if (notiConfig) {
-        if (notiConfig.event) {
-          notiConfig.event.emit('close', arg.event);
-          delete notiConfig.event;
-        }
-        this.#notifications.delete(arg.tag);
+      if (notiConfig?.event) {
+        notiConfig.event.emit('close', arg.event);
+        delete notiConfig.event;
       }
+      clearNotification(arg.tag);
     });
 
+    // All
     ipcRenderer.on(this.#Events.All, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
       if (notiConfig?.event) notiConfig.event.emit('all', arg);
     });
 
+    // Show
     ipcRenderer.on(this.#Events.Show, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
       if (notiConfig?.event) notiConfig.event.emit('show', arg.event);
     });
 
+    // Click
     ipcRenderer.on(this.#Events.Click, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
       if (notiConfig?.event) notiConfig.event.emit('click', arg.event);
+      clearNotification(arg.tag);
     });
 
+    // Reply
     ipcRenderer.on(this.#Events.Reply, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
       if (notiConfig?.event) notiConfig.event.emit('reply', arg.reply);
+      clearNotification(arg.tag);
     });
 
+    // Action
     ipcRenderer.on(this.#Events.Action, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
       if (notiConfig?.event) notiConfig.event.emit('action', arg.index);
+      clearNotification(arg.tag);
     });
 
+    // Failed
     ipcRenderer.on(this.#Events.Failed, (_event, arg) => {
       const notiConfig = this.#notifications.get(arg.tag);
       if (notiConfig?.event) notiConfig.event.emit('failed', new Error(arg.error));
+      clearNotification(arg.tag);
     });
   }
 }
