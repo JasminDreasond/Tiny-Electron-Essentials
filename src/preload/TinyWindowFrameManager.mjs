@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { getDefaultWindowFrameRoot, getDefaultWindowFrameStyle } from '../global/css.mjs';
+import { getDefaultWindowFrameRoot, getDefaultWindowFrameStyle } from '../global/CssFile.mjs';
 import { RootEvents } from '../global/Events.mjs';
 import { moveBodyContentTo } from '../global/Utils.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
