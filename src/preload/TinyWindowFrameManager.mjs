@@ -117,7 +117,10 @@ class TinyWindowFrameManager {
     buttons.classList.add('frame-buttons');
     for (const value of this.#options.buttonsMap) {
       if (btn[value] instanceof HTMLElement) buttons.appendChild(btn[value]);
-      else throw new Error('');
+      else
+        throw new Error(
+          `Invalid button name "${value}" in buttonsMap. Allowed values are: minimize, maximize, close.`,
+        );
     }
 
     btn.minimize.addEventListener('click', () => this.#client.minimize());
