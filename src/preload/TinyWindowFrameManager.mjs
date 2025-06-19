@@ -203,7 +203,7 @@ class TinyWindowFrameManager {
     const root = document.createElement('style');
     root.id = 'electron-window-root-style';
     root.textContent = `
-      :root ${this.getElementName()} {
+      :root {
         /* Layout */
         --frame-root-background: #fff;
         --frame-height: 32px;
@@ -243,6 +243,11 @@ class TinyWindowFrameManager {
     style.id = 'electron-window-style';
     style.textContent = `
       /* Base */
+      body {
+        height: 100%;
+        width: 100%;
+      }
+
       ${this.getElementName()} {
         position: fixed;
         inset: 0;
@@ -352,8 +357,29 @@ class TinyWindowFrameManager {
         background-position: center;
       }
 
+      /* Buttons style base */
+      ${this.getElementName('.frame-menu > button')},
+      ${this.getElementName('.frame-buttons > button')},
+      ${this.getElementName('.frame-menu > button')}:focus,
+      ${this.getElementName('.frame-menu > button')}:active,
+      ${this.getElementName('.frame-menu > button')}:hover,
+      ${this.getElementName('.frame-buttons > button')}:focus,
+      ${this.getElementName('.frame-buttons > button')}:active,
+      ${this.getElementName('.frame-buttons > button')}:hover,
+      ${this.getElementName('.frame-menu > button')}:disabled,
+      ${this.getElementName('.frame-buttons > button')}:disabled {
+        outline: none;
+        box-shadow: none;
+        text-shadow: none;
+      }
+
+      ${this.getElementName('.frame-menu > button')}:disabled,
+      ${this.getElementName('.frame-buttons > button')}:disabled {
+        opacity: 0.5;
+      }
+
       /* Buttons */
-      ${this.getElementName('.frame-menu button')} {
+      ${this.getElementName('.frame-menu > button')} {
         font-size: var(--frame-font-size);
         font-family: var(--frame-font-family);
         background-color: transparent;
@@ -368,7 +394,7 @@ class TinyWindowFrameManager {
         height: 100%;
       }
 
-      ${this.getElementName('.frame-buttons button')} {
+      ${this.getElementName('.frame-buttons > button')} {
         font-size: var(--frame-font-size);
         font-family: var(--frame-font-family);
         background: transparent;
@@ -380,8 +406,8 @@ class TinyWindowFrameManager {
         -webkit-app-region: no-drag;
       }
 
-      ${this.getElementName('.frame-buttons button:hover')},
-      ${this.getElementName('.frame-menu button:hover')} {
+      ${this.getElementName('.frame-buttons > button:hover')},
+      ${this.getElementName('.frame-menu > button:hover')} {
         background-color: var(--frame-button-hover-background);
       }
 
@@ -395,20 +421,20 @@ class TinyWindowFrameManager {
 
       /* Blur effects */
       ${this.getElementName('.frame-title', '', `body.${this.#blurClass}`)},
-      ${this.getElementName('.frame-menu button', '', `body.${this.#blurClass}`)},
-      ${this.getElementName('.frame-buttons button', '', `body.${this.#blurClass}`)} {
+      ${this.getElementName('.frame-menu > button', '', `body.${this.#blurClass}`)},
+      ${this.getElementName('.frame-buttons > button', '', `body.${this.#blurClass}`)} {
         color: var(--frame-font-blur-color);
       }
 
       ${this.getElementName('.frame-title:hover', '', `body.${this.#blurClass}`)},
-      ${this.getElementName('.frame-menu button:hover', '', `body.${this.#blurClass}`)},
-      ${this.getElementName('.frame-buttons button:hover', '', `body.${this.#blurClass}`)} {
+      ${this.getElementName('.frame-menu > button:hover', '', `body.${this.#blurClass}`)},
+      ${this.getElementName('.frame-buttons > button:hover', '', `body.${this.#blurClass}`)} {
         color: var(--frame-font-color);
       }
 
       /* Active effects */
-      ${this.getElementName('.frame-buttons button:active')},
-      ${this.getElementName('.frame-menu button:active')} {
+      ${this.getElementName('.frame-buttons > button:active')},
+      ${this.getElementName('.frame-menu > button:active')} {
         background-color: var(--frame-button-active-background);
       }
     `;
