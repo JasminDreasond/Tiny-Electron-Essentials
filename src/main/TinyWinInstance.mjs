@@ -180,8 +180,6 @@ class TinyWinInstance {
     if (changeVisibleTo) this.#win?.show();
     else this.#win?.hide();
     this.#visible = changeVisibleTo;
-    if (this.#win && this.#win.webContents)
-      this.#win.webContents.send(this.#AppEvents.ShowApp, changeVisibleTo);
     this.#emit(RootEvents.ShowApp, this.#index, changeVisibleTo);
     return changeVisibleTo;
   }
@@ -201,7 +199,8 @@ class TinyWinInstance {
    */
   ping(data) {
     this.#checkDestroy();
-    if (this.#win.webContents) this.#win.webContents.send(this.#AppEvents.Ping, data);
+    if (this.#win.webContents)
+      this.#win.webContents.send(this.#AppEvents.Ping, { value: data, time: Date.now() });
   }
 
   /**
@@ -310,11 +309,19 @@ class TinyWinInstance {
       this.toggleVisible(show);
       if (isMaximized && show) this.#win.maximize();
       this.#emit(RootEvents.ReadyToShow, this.#index, ...args);
+      if (this.#win)
+        this.#win.webContents.send(this.#AppEvents.ReadyToShow, {
+          time: Date.now(),
+        });
     });
 
     // Resize
     const resizeWindowEvent = () => {
-      if (this.#win) this.#win.webContents.send('resize', this.#win.getSize());
+      if (this.#win)
+        this.#win.webContents.send(this.#AppEvents.Resize, {
+          value: this.#win.getSize(),
+          time: Date.now(),
+        });
     };
 
     this.#win.on('resize', resizeWindowEvent);
@@ -333,50 +340,91 @@ class TinyWinInstance {
     this.#win.on('enter-html-full-screen', resizeWindowEvent);
     this.#win.on('leave-html-full-screen', resizeWindowEvent);
 
+    const fullscreenEvent = () => {
+      if (this.#win)
+        this.#win.webContents.send(this.#AppEvents.WindowIsFullScreen, {
+          value: this.#win.isFullScreen(),
+          time: Date.now(),
+        });
+    };
+
+    this.#win.on('enter-full-screen', fullscreenEvent);
+    this.#win.on('leave-full-screen', fullscreenEvent);
+
+    this.#win.on('enter-html-full-screen', fullscreenEvent);
+    this.#win.on('leave-html-full-screen', fullscreenEvent);
+
     // More
     this.#win.on('focus', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsFocused, true);
+        this.#win.webContents.send(this.#AppEvents.WindowIsFocused, {
+          value: true,
+          time: Date.now(),
+        });
     });
 
     this.#win.on('blur', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsFocused, false);
+        this.#win.webContents.send(this.#AppEvents.WindowIsFocused, {
+          value: false,
+          time: Date.now(),
+        });
     });
 
     this.#win.on('show', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsVisible, true);
+        this.#win.webContents.send(this.#AppEvents.WindowIsVisible, {
+          value: true,
+          time: Date.now(),
+        });
     });
 
     this.#win.on('hide', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsVisible, false);
+        this.#win.webContents.send(this.#AppEvents.WindowIsVisible, {
+          value: false,
+          time: Date.now(),
+        });
     });
 
     this.#win.on('maximize', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, true);
+        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, {
+          value: true,
+          time: Date.now(),
+        });
     });
 
     this.#win.on('unmaximize', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, false);
+        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, {
+          value: false,
+          time: Date.now(),
+        });
     });
 
     this.#win.on('will-resize', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, this.#win.isMaximized());
+        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, {
+          value: this.#win.isMaximized(),
+          time: Date.now(),
+        });
     });
 
     this.#win.on('resize', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, this.#win.isMaximized());
+        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, {
+          value: this.#win.isMaximized(),
+          time: Date.now(),
+        });
     });
 
     this.#win.on('resized', () => {
       if (this.#win && this.#win.webContents)
-        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, this.#win.isMaximized());
+        this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, {
+          value: this.#win.isMaximized(),
+          time: Date.now(),
+        });
     });
   }
 

@@ -135,3 +135,28 @@ export const checkEventsList = (eventNames, list) => {
       list[key] = eventNames[key];
   }
 };
+
+/**
+ * Move all elements from document.body into a target container,
+ * except for <style> and <script> tags.
+ *
+ * @param {HTMLElement} targetElement - The destination container.
+ */
+export function moveBodyContentTo(targetElement) {
+  if (!(targetElement instanceof HTMLElement)) {
+    throw new TypeError('targetElement must be an HTMLElement');
+  }
+
+  const nodes = Array.from(document.body.childNodes);
+
+  for (const node of nodes) {
+    if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      // @ts-ignore
+      (node.tagName === 'SCRIPT' || node.tagName === 'STYLE')
+    ) {
+      continue; // Skip <script> and <style>
+    }
+    targetElement.appendChild(node);
+  }
+}

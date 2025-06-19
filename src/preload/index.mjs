@@ -2,5 +2,12 @@ import TinyDb from './TinyDb.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
 import TinyElectronNotification from './TinyElectronNotification.mjs';
 import TinyIpcRequestManager from './TinyIpcRequestManager.mjs';
+import TinyWindowFrameManager from './TinyWindowFrameManager.mjs';
 
-export { TinyIpcRequestManager, TinyElectronClient, TinyElectronNotification, TinyDb };
+export {
+  TinyIpcRequestManager,
+  TinyElectronClient,
+  TinyElectronNotification,
+  TinyDb,
+  TinyWindowFrameManager,
+};

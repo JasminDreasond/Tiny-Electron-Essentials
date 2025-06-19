@@ -72,8 +72,8 @@ class TinyElectronNotification {
     const sendEvent = (eventName, eventType, nEvent = {}) => {
       if (win && win.webContents) {
         const event = { tag, ...nEvent };
-        win.webContents.send(eventName, event);
-        win.webContents.send(this.#Events.All, { type: eventType, ...event });
+        win.webContents.send(eventName, { arg: event, time: Date.now() });
+        win.webContents.send(this.#Events.All, { type: eventType, arg: event, time: Date.now() });
       }
     };
 

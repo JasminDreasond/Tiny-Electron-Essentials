@@ -63,6 +63,10 @@ root.on(RootEvents.CreateFirstWindow, () => {
 
   const instance = root.createWindow({
     config: {
+      frame: false,
+      transparent: true,
+      titleBarStyle: 'hidden',
+      autoHideMenuBar: true,
       width: 800,
       height: 600,
       icon: root.getIcon(),

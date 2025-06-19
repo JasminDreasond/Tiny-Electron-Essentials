@@ -1,11 +1,22 @@
 const { contextBridge } = require('electron');
-const { TinyElectronClient, TinyDb, TinyElectronNotification } = require('../preload/index.cjs');
+const {
+  TinyElectronClient,
+  TinyDb,
+  TinyElectronNotification,
+  TinyWindowFrameManager,
+} = require('../preload/index.cjs');
+const { RootEvents } = require('../global/Events.cjs');
 
 // Init
 const client = new TinyElectronClient();
 client.installWinScript();
+client.requestCache();
 const { removeLoading } = client.installLoadingPage();
 setTimeout(removeLoading, 1000);
+
+const createRootEvent = (eventName) =>
+  client.on(eventName, (value) => console.log(eventName, value));
+for (const name in RootEvents) createRootEvent(RootEvents[name]);
 
 // Idle time test
 setTimeout(async () => {
@@ -53,4 +64,24 @@ contextBridge.exposeInMainWorld('api', {
 
     tinyNoti.show();
   },
+});
+
+client.on(RootEvents.ReadyToShow, () => client.requestCache());
+client.on(RootEvents.Ready, () => {
+  client.requestCache();
+  const win = new TinyWindowFrameManager({
+    client,
+    buttonsPosition: 'right',
+    titlePosition: 'center',
+  });
+
+  win.setTitle('My Pudding App');
+  win.setIcon('../icons/favicon.png');
+
+  win.addMenuButton('Home', () => console.log('Home'));
+  win.addMenuButton('Settings', () => console.log('Settings'));
+  setTimeout(() => {
+    win.hideMenu();
+    setTimeout(() => win.showMenu(), 1000);
+  }, 5000);
 });

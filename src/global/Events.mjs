@@ -23,15 +23,17 @@
  * @property {string} WindowMinimize      - Minimizes the application window to the taskbar or dock.
  * @property {string} WindowIsFocused     - Returns whether the application window is currently focused.
  * @property {string} WindowIsVisible     - Returns whether the application window is currently visible.
+ * @property {string} WindowIsFullScreen  - Returns whether the application window is currently in fullscreen mode.
+ * @property {string} ReadyToShow         - Notifies that the window has completed initialization and is ready to be displayed.
  * @property {string} WindowHide          - Hides the application window from view.
  * @property {string} WindowShow          - Shows the application window if hidden.
- * @property {string} ChangeAppIcon       - Changes the icon of the application window.
- * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application.
- * @property {string} ConsoleMessage      - Sends a message to be printed in the window process console.
- * @property {string} ElectronCacheValues - Requests or responds with cached Electron-related values (e.g., user agent, version).
- * @property {string} Ping                - Used to check connectivity between processes or confirm IPC channel activity.
- * @property {string} Resize              - Resizes the application window to a specified width and height.
- * @property {string} ShowApp             - Instructs the application to become visible, typically restoring it from the tray.
+ * @property {string} ChangeAppIcon       - Changes the icon of the application window dynamically.
+ * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application dynamically.
+ * @property {string} ConsoleMessage      - Sends a message to be printed in the renderer process console for debugging purposes.
+ * @property {string} ElectronCacheValues - Requests or responds with cached Electron-related values (e.g., user agent, versions, etc.).
+ * @property {string} Ping                - Sends a ping signal to check the connectivity or liveness of the IPC channel.
+ * @property {string} Resize              - Resizes the application window to the specified width and height.
+ * @property {string} ShowApp             - Brings the entire application to the foreground, typically from the system tray or background.
  */
 
 export const AppEvents = {
@@ -53,6 +55,8 @@ export const AppEvents = {
   WindowMinimize: 'window-minimize',
   WindowIsFocused: 'window-is-focused',
   WindowIsVisible: 'window-is-visible',
+  WindowIsFullScreen: 'window-is-fullscreen',
+  ReadyToShow: 'window-ready-to-show',
   WindowHide: 'window-hide',
   WindowShow: 'window-show',
   ChangeAppIcon: 'change-app-icon',
@@ -70,27 +74,29 @@ export const AppEvents = {
  * lifecycle events, window state changes, and proxy configurations.
  *
  * @typedef {Object} RootEvents
- * @property {string} AppShow            - Emitted when the application is brought to the foreground or made visible.
- * @property {string} IsMaximized        - Emitted when a check is performed or a change occurs in the window's maximized state.
+ * @property {string} IsMaximized        - Emitted when the window enters or exits maximized state.
  * @property {string} IsFocused          - Emitted when the window gains or loses focus.
  * @property {string} IsVisible          - Emitted when the window becomes visible or hidden.
- * @property {string} SetProxyError      - Emitted when there is an error setting a proxy configuration.
+ * @property {string} IsFullScreen       - Emitted when the window enters or exits fullscreen mode.
+ * @property {string} SetProxyError      - Emitted when there is an error applying the proxy configuration.
  * @property {string} SetProxy           - Emitted when a proxy configuration is successfully applied.
- * @property {string} Resize             - Emitted when the application window is resized.
- * @property {string} Ready              - Emitted when the application is ready to initialize its core systems.
- * @property {string} CreateFirstWindow  - Emitted to signal the creation of the first application window.
+ * @property {string} Resize             - Emitted when the window is resized.
+ * @property {string} Ping               - Emitted as a heartbeat or connectivity check between internal systems.
+ * @property {string} Ready              - Emitted when the application has fully initialized and is ready to start.
+ * @property {string} CreateFirstWindow  - Emitted to signal the creation of the first application window during startup.
  * @property {string} ReadyToShow        - Emitted when the window is fully initialized and ready to be displayed, but not yet shown.
- * @property {string} ShowApp            - Emitted when the window is actually shown to the user, following the 'ReadyToShow' event.
+ * @property {string} ShowApp            - Emitted when the application window is actually shown to the user after being ready.
  */
 
 export const RootEvents = {
-  AppShow: 'AppShow',
   IsMaximized: 'isMaximized',
   IsFocused: 'isFocused',
   IsVisible: 'isVisible',
   SetProxyError: 'setProxyError',
   SetProxy: 'setProxy',
   Resize: 'resize',
+  IsFullScreen: 'IsFullScreen',
+  Ping: 'Ping',
   Ready: 'Ready',
   CreateFirstWindow: 'CreateFirstWindow',
   ReadyToShow: 'ReadyToShow',

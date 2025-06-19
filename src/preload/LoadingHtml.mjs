@@ -32,6 +32,11 @@ function defaultStyleCreator() {
     75% { transform: perspective(100px) rotateX(0) rotateY(180deg); }
     100% { transform: perspective(100px) rotateX(0) rotateY(0); }
   }
+
+  .root-electron-style-solo {
+    -webkit-app-region: drag;
+  }
+
   .${className} .${containerClass} > div {
     animation-fill-mode: both;
     width: 50px;
@@ -53,9 +58,6 @@ function defaultStyleCreator() {
     left: 0;
     width: 100vw;
     z-index: 9;
-  }
-  body.electron-mode .app-loading-wrap {
-    top: 29px !important;
   }
   `;
 

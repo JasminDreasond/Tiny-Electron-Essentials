@@ -353,12 +353,16 @@ class TinyElectronClient {
   /** @type {TinyIpcRequestManager} */
   #ipcRequest;
 
+  #fullscreen = false;
   #visible = false;
   #focused = false;
   #maximized = false;
 
   #appShow = true;
   #pinged = false;
+
+  /** @type {Record<string, number>} */
+  #eventPings = {};
 
   /** @type {Record<string, any>} */
   data = {};
@@ -380,6 +384,11 @@ class TinyElectronClient {
   /** @param {boolean} value */
   #setIsVisible(value) {
     this.#visible = value;
+  }
+
+  /** @param {boolean} value */
+  #setIsFullScreen(value) {
+    this.#fullscreen = value;
   }
 
   /** @param {boolean} value */
@@ -410,6 +419,11 @@ class TinyElectronClient {
   /** @returns {boolean} */
   getShowStatus() {
     return this.#appShow;
+  }
+
+  /** @returns {boolean} */
+  isFullScreen() {
+    return this.#fullscreen;
   }
 
   /** @returns {boolean} */
@@ -835,44 +849,90 @@ class TinyElectronClient {
     checkEventsList(eventNames, this.#AppEvents);
     this.#ipcRequest = new TinyIpcRequestManager(ipcReceiverChannel);
 
-    ipcRenderer.on(this.#AppEvents.Resize, (_event, data) => this.#emit(RootEvents.Resize, data));
-    ipcRenderer.on(this.#AppEvents.SetProxy, (_event, data) =>
-      this.#emit(RootEvents.SetProxy, data),
+    // Console warning
+    ipcRenderer.on(this.#AppEvents.ConsoleMessage, (_event, { value } = {}) =>
+      console.log(value[0], value[1]),
     );
-    ipcRenderer.on(this.#AppEvents.ConsoleMessage, (_event, msg, msg2) => console.log(msg, msg2));
 
-    ipcRenderer.on(this.#AppEvents.SetProxyError, (_event, data) => {
+    /**
+     * @param {string} where
+     * @param {((value: any) => void)|null} callback
+     * @param {{ value: any; time: number; }} data
+     */
+    const sendEvent = (where, callback, data) => {
+      const { value, time } = data;
+      if (typeof this.#eventPings[where] !== 'number') this.#eventPings[where] = 0;
+      if (
+        typeof time === 'number' &&
+        Number.isFinite(time) &&
+        !Number.isNaN(time) &&
+        time > this.#eventPings[where]
+      ) {
+        this.#eventPings[where] = time;
+        if (typeof callback === 'function') callback(value);
+        this.#emit(where, value);
+      }
+    };
+
+    // Ready to Show
+    ipcRenderer.on(this.#AppEvents.ReadyToShow, (_event, data) =>
+      sendEvent(RootEvents.ReadyToShow, null, data),
+    );
+
+    // Resize
+    ipcRenderer.on(this.#AppEvents.Resize, (_event, data) =>
+      sendEvent(RootEvents.Resize, null, data),
+    );
+
+    // Proxy
+    ipcRenderer.on(this.#AppEvents.SetProxy, (_event, data) =>
+      sendEvent(RootEvents.SetProxy, null, data),
+    );
+
+    ipcRenderer.on(this.#AppEvents.SetProxyError, (_event, { err }) => {
       try {
         /** @type {Error} */
-        const err = deserializeError(data);
-        this.#emit(RootEvents.SetProxyError, err);
-      } catch (err) {
-        console.error(err);
+        const newErr = deserializeError(err);
+        this.#emit(RootEvents.SetProxyError, newErr);
+      } catch (newErr) {
+        console.error(newErr);
       }
     });
 
     // App Status
-    ipcRenderer.on(this.#AppEvents.ShowApp, (_event, data) => {
-      this.#setShowStatus(data);
-      this.#emit(RootEvents.AppShow, data);
-    });
+    ipcRenderer.on(this.#AppEvents.ShowApp, (_event, data) =>
+      sendEvent(RootEvents.ShowApp, (value) => this.#setShowStatus(value), data),
+    );
 
-    ipcRenderer.on(this.#AppEvents.WindowIsMaximized, (_event, arg) => {
-      this.#setIsMaximized(arg);
-      this.#emit(RootEvents.IsMaximized, arg);
-    });
+    // Maximize
+    ipcRenderer.on(this.#AppEvents.WindowIsMaximized, (_event, arg) =>
+      sendEvent(RootEvents.IsMaximized, (value) => this.#setIsMaximized(value), arg),
+    );
 
-    ipcRenderer.on(this.#AppEvents.WindowIsFocused, (_event, arg) => {
-      this.#setIsFocused(arg);
-      this.#emit(RootEvents.IsFocused, arg);
-    });
+    // Focus
+    ipcRenderer.on(this.#AppEvents.WindowIsFocused, (_event, arg) =>
+      sendEvent(RootEvents.IsFocused, (value) => this.#setIsFocused(value), arg),
+    );
 
-    ipcRenderer.on(this.#AppEvents.WindowIsVisible, (_event, arg) => {
-      this.#setIsVisible(arg);
-      this.#emit(RootEvents.IsVisible, arg);
-    });
+    // Visible
+    ipcRenderer.on(this.#AppEvents.WindowIsVisible, (_event, arg) =>
+      sendEvent(RootEvents.IsVisible, (value) => this.#setIsVisible(value), arg),
+    );
 
-    ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) => this.#firstPing(arg));
+    // Full Screen
+    ipcRenderer.on(this.#AppEvents.WindowIsFullScreen, (_event, arg) =>
+      sendEvent(RootEvents.IsFullScreen, (value) => this.#setIsFullScreen(value), arg),
+    );
+
+    // Ping
+    ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) =>
+      sendEvent(RootEvents.Ping, (value) => this.#firstPing(value), arg),
+    );
+
+    // Ready
+    window.addEventListener('DOMContentLoaded', () => {
+      this.#emit(RootEvents.Ready);
+    });
   }
 }
 
