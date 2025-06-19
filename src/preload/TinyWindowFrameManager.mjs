@@ -10,6 +10,11 @@ class TinyWindowFrameManager {
   #unmaximizeIcon = '🗗';
   #closeIcon = '🗙';
 
+  #blurClass = 'electron-blur';
+  #focusClass = 'electron-focus';
+  #fullscreenClass = 'electron-fullscreen';
+  #maximizedClass = 'electron-maximized';
+
   #client;
   #options = {
     buttonsPosition: 'right',
@@ -17,8 +22,11 @@ class TinyWindowFrameManager {
     buttonsMap: ['minimize', 'maximize', 'close'],
   };
 
-  getElementName(name = '') {
-    return `#${this.#windowRoot}${name.length > 0 && name.startsWith(' ') ? name : ` ${name}`}`;
+  elements = {};
+  styles = {};
+
+  getElementName(name = '', extra = '', extra2 = '') {
+    return `${extra2.length > 0 ? `${extra2} ` : ''}#${this.#windowRoot}${extra}${name.length > 0 && name.startsWith(' ') ? name : ` ${name}`}`;
   }
 
   /**
@@ -40,9 +48,6 @@ class TinyWindowFrameManager {
     this.#options.titlePosition = titlePosition;
     this.#options.buttonsMap = buttonsMap;
     this.#client = client;
-
-    this.elements = {};
-    this.styles = {};
 
     this.#createStructure();
     if (applyDefaultStyles) this.#applyDefaultStyles();
@@ -167,25 +172,27 @@ class TinyWindowFrameManager {
     };
 
     const client = this.#client;
+    if (document.hasFocus()) document.body.classList.add(this.#focusClass);
+    else document.body.classList.add(this.#blurClass);
 
     client.on(RootEvents.IsFocused, (isFocused) => {
       if (isFocused) {
-        document.body.classList.add('electron-focus');
-        document.body.classList.remove('electron-blur');
+        document.body.classList.add(this.#focusClass);
+        document.body.classList.remove(this.#blurClass);
       } else {
-        document.body.classList.remove('electron-focus');
-        document.body.classList.add('electron-blur');
+        document.body.classList.remove(this.#focusClass);
+        document.body.classList.add(this.#blurClass);
       }
     });
 
     client.on(RootEvents.IsMaximized, (isMaximized) => {
-      if (isMaximized) document.body.classList.add('electron-maximized');
-      else document.body.classList.remove('electron-maximized');
+      if (isMaximized) document.body.classList.add(this.#maximizedClass);
+      else document.body.classList.remove(this.#maximizedClass);
     });
 
     client.on(RootEvents.IsFullScreen, (isFullScreen) => {
-      if (isFullScreen) document.body.classList.add('electron-fullscreen');
-      else document.body.classList.remove('electron-fullscreen');
+      if (isFullScreen) document.body.classList.add(this.#fullscreenClass);
+      else document.body.classList.remove(this.#fullscreenClass);
     });
 
     // Check menu visibility initially
@@ -212,7 +219,7 @@ class TinyWindowFrameManager {
         --frame-font-family: system-ui, sans-serif;
         --frame-title-font-size: 8pt;
         --frame-font-color: white;
-        --frame-button-color: white;
+        --frame-font-blur-color: rgba(255, 255, 255, 0.6);
         --frame-button-hover-background: rgba(255, 255, 255, 0.1);
 
         /* Icons */
@@ -234,6 +241,7 @@ class TinyWindowFrameManager {
     const style = document.createElement('style');
     style.id = 'electron-window-style';
     style.textContent = `
+      /* Base */
       ${this.getElementName()} {
         position: fixed;
         inset: 0;
@@ -242,10 +250,8 @@ class TinyWindowFrameManager {
         overflow: hidden;
       }
 
+      /* Border */
       ${this.getElementName('.custom-window-frame')} {
-        pointer-events: none;
-        user-select: none;
-        color: var(--frame-font-color);
         border-top: var(--frame-border-size) solid var(--frame-border-color);
         border-left: var(--frame-border-size) solid var(--frame-border-color);
         border-right: var(--frame-border-size) solid var(--frame-border-color);
@@ -266,15 +272,25 @@ class TinyWindowFrameManager {
       }
 
       ${this.getElementName('.window-content')} {
-        flex: 1;
-        overflow: auto;
-        pointer-events: all;
-        background: var(--frame-root-background);
         border-bottom: var(--frame-border-size) solid var(--frame-border-color);
         border-left: var(--frame-border-size) solid var(--frame-border-color);
         border-right: var(--frame-border-size) solid var(--frame-border-color);
         border-bottom-left-radius: var(--frame-border-radius);
         border-bottom-right-radius: var(--frame-border-radius);
+      }
+
+      /* Frame */
+      ${this.getElementName('.custom-window-frame')} {
+        pointer-events: none;
+        user-select: none;
+        color: var(--frame-font-color);
+      }
+
+      ${this.getElementName('.window-content')} {
+        flex: 1;
+        overflow: auto;
+        pointer-events: all;
+        background: var(--frame-root-background);
       }
 
       ${this.getElementName('.frame-top')} {
@@ -316,6 +332,7 @@ class TinyWindowFrameManager {
         overflow: hidden;
       }
 
+      /* Title */
       ${this.getElementName('.frame-title')} {
         white-space: nowrap;
         overflow: hidden;
@@ -324,6 +341,7 @@ class TinyWindowFrameManager {
         font-family: var(--frame-font-family);
       }
 
+      /* Icon */
       ${this.getElementName('.frame-icon')} {
         padding-left: var(--frame-padding-x);
         width: var(--frame-icon-size);
@@ -333,12 +351,13 @@ class TinyWindowFrameManager {
         background-position: center;
       }
 
+      /* Buttons */
       ${this.getElementName('.frame-menu button')} {
         font-size: var(--frame-font-size);
         font-family: var(--frame-font-family);
         background-color: transparent;
         border: none;
-        color: white;
+        color: var(--frame-font-color);
         padding: 4px 8px;
         border-radius: 4px;
         cursor: default;
@@ -353,7 +372,7 @@ class TinyWindowFrameManager {
         font-family: var(--frame-font-family);
         background: transparent;
         border: none;
-        color: var(--frame-button-color);
+        color: var(--frame-font-color);
         width: var(--frame-button-width);
         height: 100%;
         cursor: default;
@@ -371,6 +390,19 @@ class TinyWindowFrameManager {
         display: flex;
         gap: var(--frame-menu-gap);
         -webkit-app-region: no-drag;
+      }
+
+      /* Blur effects */
+      ${this.getElementName('.frame-title', '', `body.${this.#blurClass}`)},
+      ${this.getElementName('.frame-menu button', '', `body.${this.#blurClass}`)},
+      ${this.getElementName('.frame-buttons button', '', `body.${this.#blurClass}`)} {
+        color: var(--frame-font-blur-color);
+      }
+
+      ${this.getElementName('.frame-title:hover', '', `body.${this.#blurClass}`)},
+      ${this.getElementName('.frame-menu button:hover', '', `body.${this.#blurClass}`)},
+      ${this.getElementName('.frame-buttons button:hover', '', `body.${this.#blurClass}`)} {
+        color: var(--frame-font-color);
       }
     `;
     document.head.prepend(style);
