@@ -125,9 +125,15 @@ class TinyWindowFrameManager {
 
     btn.minimize.addEventListener('click', () => this.#client.minimize());
     btn.close.addEventListener('click', () => this.#client.close());
-    btn.maximize.addEventListener('click', () =>
-      this.#client.isMaximized() ? this.#client.unmaximize() : this.#client.maximize(),
-    );
+    btn.maximize.addEventListener('click', () => {
+      if (this.#client.isMaximized()) {
+        this.#client.unmaximize();
+        btn.maximize.innerHTML = this.#maximizeIcon;
+      } else {
+        this.#client.maximize();
+        btn.maximize.innerHTML = this.#unmaximizeIcon;
+      }
+    });
 
     // Build top sections respecting icon always at the end
     const buildSection = (side, items) => {
