@@ -96,7 +96,9 @@ root.on(RootEvents.CreateFirstWindow, () => {
       });
 
     tinyPing();
-    root.on(RootEvents.DOMContentLoaded, () => tinyPing());
+    root.on(RootEvents.DOMContentLoaded, (_e, { type } = {}) => {
+      if (type === 'reload') tinyPing();
+    });
   });
 
   console.log(`Instance index: ${instance.getIndex()}`);

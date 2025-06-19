@@ -187,16 +187,6 @@ class TinyWindowFrameManager {
     if (document.hasFocus()) document.body.classList.add(this.#focusClass);
     else document.body.classList.add(this.#blurClass);
 
-    client.on(RootEvents.IsFocused, (isFocused) => {
-      if (isFocused) {
-        document.body.classList.add(this.#focusClass);
-        document.body.classList.remove(this.#blurClass);
-      } else {
-        document.body.classList.remove(this.#focusClass);
-        document.body.classList.add(this.#blurClass);
-      }
-    });
-
     client.on(RootEvents.IsMaximized, (isMaximized) => {
       if (isMaximized) document.body.classList.add(this.#maximizedClass);
       else document.body.classList.remove(this.#maximizedClass);
@@ -205,6 +195,30 @@ class TinyWindowFrameManager {
     client.on(RootEvents.IsFullScreen, (isFullScreen) => {
       if (isFullScreen) document.body.classList.add(this.#fullscreenClass);
       else document.body.classList.remove(this.#fullscreenClass);
+    });
+
+    const gainFocus = () => {
+      document.body.classList.add(this.#focusClass);
+      document.body.classList.remove(this.#blurClass);
+    };
+
+    const loseFocus = () => {
+      document.body.classList.remove(this.#focusClass);
+      document.body.classList.add(this.#blurClass);
+    };
+
+    client.on(RootEvents.IsFocused, (isFocused) => {
+      if (isFocused) gainFocus();
+      else loseFocus();
+    });
+
+    // Listen when the window loses focus
+    window.addEventListener('blur', () => loseFocus());
+
+    // Listen when the window gains focus
+    window.addEventListener('focus', () => gainFocus());
+    window.addEventListener('mousedown', () => {
+      if (!document.hasFocus()) gainFocus();
     });
 
     // Check menu visibility initially
