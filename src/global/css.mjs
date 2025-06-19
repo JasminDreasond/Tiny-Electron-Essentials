@@ -1,0 +1,324 @@
+import fs from 'fs';
+import path from 'path';
+
+/**
+ * Save CSS content into a .css file with strict validation.
+ *
+ * @param {string} directory - The folder path where the file will be saved.
+ * @param {string} filename - The name of the file (should end with .css).
+ * @param {string} cssContent - The CSS content to be saved.
+ * @returns {Promise<void>}
+ * @throws {Error} If validation fails or write fails.
+ */
+export async function saveCssFile(directory, filename, cssContent) {
+  if (typeof directory !== 'string' || directory.trim() === '')
+    throw new Error('Invalid directory path.');
+  if (typeof filename !== 'string' || !/^[\w\- ]+\.css$/.test(filename))
+    throw new Error('Invalid filename. Must be a valid name ending with .css');
+  if (typeof cssContent !== 'string') throw new Error('CSS content must be a string.');
+
+  const absolutePath = path.resolve(directory);
+  const fullFilePath = path.join(absolutePath, filename);
+
+  if (!fs.existsSync(absolutePath)) throw new Error(`Directory does not exist: ${absolutePath}`);
+
+  try {
+    await fs.promises.writeFile(fullFilePath, cssContent, 'utf8');
+    console.log(`✔ CSS file saved to: ${fullFilePath}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to save CSS file: ${message}`);
+  }
+}
+
+// TinyWindowFrameManager
+
+/**
+ * Returns the default CSS variables for the custom window frame.
+ *
+ * This CSS string defines a set of variables under `:root` that control
+ * colors, layout, spacing, fonts, and component sizes for a window frame UI.
+ *
+ * @returns {string} CSS string containing :root variables for styling the window frame.
+ */
+export const getDefaultWindowFrameRoot = () => {
+  return `
+      :root {
+        /* Layout */
+        --frame-root-background: #fff;
+        --frame-height: 32px;
+        --frame-border-size: 1px;
+
+        /* Colors */
+        --frame-background: rgba(30, 30, 30, 0.95);
+        --frame-border-color: rgb(76 76 76);
+        --frame-border-radius: 7px;
+
+        /* Text */
+        --frame-font-size: 10pt;
+        --frame-font-family: system-ui, sans-serif;
+        --frame-title-font-size: 8pt;
+        --frame-font-color: white;
+        --frame-font-blur-color: rgba(255, 255, 255, 0.6);
+        --frame-button-hover-background: rgba(255, 255, 255, 0.1);
+        --frame-button-active-background: rgba(255, 255, 255, 0.2);
+
+        /* Icons */
+        --frame-icon-size: 20px;
+
+        /* Buttons */
+        --frame-button-width: 32px;
+
+        /* Padding */
+        --frame-padding-x: 8px;
+        --frame-gap: 6px;
+
+        /* Menu */
+        --frame-menu-max-width: 200px;
+        --frame-menu-gap: 4px;
+      }
+    `;
+};
+
+/**
+ * Returns the default CSS rules for the custom window frame layout and behavior.
+ *
+ * This CSS string styles the window borders, title bar, buttons, icons, menus,
+ * and supports fullscreen and blur states. It relies on a function to generate
+ * dynamic class selectors for component names.
+ *
+ * @param {Object} [settings={}] - Optional settings to customize the CSS output.
+ * @param {(className?: string, extra?: string, extra2?: string) => string} [settings.getElementName]
+ * Function that returns a valid CSS selector string based on provided class names or modifiers.
+ *
+ * @param {string} [settings.fullscreenClass]
+ * Class name applied to `<body>` to indicate fullscreen mode, which affects frame visibility.
+ *
+ * @param {string} [settings.blurClass]
+ * Class name applied to `<body>` to indicate blur mode, changing color schemes for certain elements.
+ *
+ * @returns {string} CSS string for the full custom window frame styling.
+ *
+ * @throws {Error} If any of the settings are invalid, such as missing `getElementName` or invalid class names.
+ */
+export const getDefaultWindowFrameStyle = ({ getElementName, fullscreenClass, blurClass } = {}) => {
+  if (typeof getElementName !== 'function')
+    throw new Error(
+      'Invalid argument: "getElementName" must be a function that returns CSS selectors.',
+    );
+  if (typeof fullscreenClass !== 'string')
+    throw new Error('Invalid argument: "fullscreenClass" must be a string.');
+  if (typeof blurClass !== 'string')
+    throw new Error('Invalid argument: "blurClass" must be a string.');
+
+  return `
+      /* Base */
+      body {
+        height: 100%;
+        width: 100%;
+      }
+
+      ${getElementName()} {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* Border */
+      ${getElementName('.custom-window-frame')} {
+        border-top: var(--frame-border-size) solid var(--frame-border-color);
+        border-left: var(--frame-border-size) solid var(--frame-border-color);
+        border-right: var(--frame-border-size) solid var(--frame-border-color);
+      }
+
+      ${getElementName('.custom-window-frame')},
+      ${getElementName('.frame-top')} {
+        border-top-left-radius: var(--frame-border-radius);
+        border-top-right-radius: var(--frame-border-radius);
+      }
+
+      ${getElementName('.frame-top-left')} {
+        border-top-left-radius: var(--frame-border-radius);
+      }
+
+      ${getElementName('.frame-top-right')} {
+        border-top-right-radius: var(--frame-border-radius);
+      }
+
+      ${getElementName('.window-content')} {
+        border-bottom: var(--frame-border-size) solid var(--frame-border-color);
+        border-left: var(--frame-border-size) solid var(--frame-border-color);
+        border-right: var(--frame-border-size) solid var(--frame-border-color);
+        border-bottom-left-radius: var(--frame-border-radius);
+        border-bottom-right-radius: var(--frame-border-radius);
+      }
+
+      /* Frame */
+      ${getElementName('.custom-window-frame')} {
+        pointer-events: none;
+        user-select: none;
+        color: var(--frame-font-color);
+      }
+
+      ${getElementName('.window-content')} {
+        flex: 1;
+        overflow: auto;
+        pointer-events: all;
+        background: var(--frame-root-background);
+      }
+
+      ${getElementName('.frame-top')} {
+        position: relative;
+        width: 100%;
+        height: var(--frame-height);
+        display: flex;
+        background: var(--frame-background);
+        pointer-events: all;
+        -webkit-app-region: drag;
+      }
+
+      ${getElementName('.frame-top-left')},
+      ${getElementName('.frame-top-center')},
+      ${getElementName('.frame-top-right')} {
+        display: flex;
+        align-items: center;
+        gap: var(--frame-gap);
+      }
+
+      ${getElementName('.frame-top-left')},
+      ${getElementName('.frame-top-right')} {
+        flex: 0 0 auto;
+        padding-top: 0px;
+        padding-bottom: 0px;
+      }
+
+      ${getElementName('.frame-top-left')} {
+        padding-right: var(--frame-padding-x);
+      }
+      ${getElementName('.frame-top-right')} {
+        padding-left: var(--frame-padding-x);
+      }
+
+      ${getElementName('.frame-top-center')} {
+        flex: 1;
+        justify-content: center;
+        padding: 0 var(--frame-padding-x);
+        overflow: hidden;
+      }
+
+      /* Title */
+      ${getElementName('.frame-title')} {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: var(--frame-title-font-size);
+        font-family: var(--frame-font-family);
+      }
+
+      /* Icon */
+      ${getElementName('.frame-icon')} {
+        padding-left: var(--frame-padding-x);
+        width: var(--frame-icon-size);
+        height: var(--frame-icon-size);
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+
+      /* Buttons style base */
+      ${getElementName('.frame-menu > button')},
+      ${getElementName('.frame-buttons > button')},
+      ${getElementName('.frame-menu > button')}:focus,
+      ${getElementName('.frame-menu > button')}:active,
+      ${getElementName('.frame-menu > button')}:hover,
+      ${getElementName('.frame-buttons > button')}:focus,
+      ${getElementName('.frame-buttons > button')}:active,
+      ${getElementName('.frame-buttons > button')}:hover,
+      ${getElementName('.frame-menu > button')}:disabled,
+      ${getElementName('.frame-buttons > button')}:disabled {
+        outline: none;
+        box-shadow: none;
+        text-shadow: none;
+      }
+
+      ${getElementName('.frame-menu > button')}:disabled,
+      ${getElementName('.frame-buttons > button')}:disabled {
+        opacity: 0.5;
+      }
+
+      /* Buttons */
+      ${getElementName('.frame-menu > button')} {
+        font-size: var(--frame-font-size);
+        font-family: var(--frame-font-family);
+        background-color: transparent;
+        border: none;
+        color: var(--frame-font-color);
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: default;
+      }
+
+      ${getElementName('.frame-buttons')} {
+        height: 100%;
+      }
+
+      ${getElementName('.frame-buttons > button')} {
+        font-size: var(--frame-font-size);
+        font-family: var(--frame-font-family);
+        background: transparent;
+        border: none;
+        color: var(--frame-font-color);
+        width: var(--frame-button-width);
+        height: 100%;
+        cursor: default;
+        -webkit-app-region: no-drag;
+      }
+
+      ${getElementName('.frame-buttons > button:hover')},
+      ${getElementName('.frame-menu > button:hover')} {
+        background-color: var(--frame-button-hover-background);
+      }
+
+      ${getElementName('.frame-menu')} {
+        max-width: var(--frame-menu-max-width);
+        overflow-x: auto;
+        display: flex;
+        gap: var(--frame-menu-gap);
+        -webkit-app-region: no-drag;
+      }
+
+      /* Blur effects */
+      ${getElementName('.frame-title', '', `body.${blurClass}`)},
+      ${getElementName('.frame-menu > button', '', `body.${blurClass}`)},
+      ${getElementName('.frame-buttons > button', '', `body.${blurClass}`)} {
+        color: var(--frame-font-blur-color);
+      }
+
+      ${getElementName('.frame-title:hover', '', `body.${blurClass}`)},
+      ${getElementName('.frame-menu > button:hover', '', `body.${blurClass}`)},
+      ${getElementName('.frame-buttons > button:hover', '', `body.${blurClass}`)} {
+        color: var(--frame-font-color);
+      }
+
+      /* Active effects */
+      ${getElementName('.frame-buttons > button:active')},
+      ${getElementName('.frame-menu > button:active')} {
+        background-color: var(--frame-button-active-background);
+      }
+
+      /* Full Screen */
+      ${getElementName('.custom-window-frame', '', `body.${fullscreenClass}`)} {
+        display: none !important;
+      }
+
+      ${getElementName('.window-content', '', `body.${fullscreenClass}`)} {
+        border-bottom: 0px solid transparent !important;
+        border-left: 0px solid transparent !important;
+        border-right: 0px solid transparent !important;
+        border-bottom-left-radius: 0px !important;
+        border-bottom-right-radius: 0px !important;
+      }
+    `;
+};
