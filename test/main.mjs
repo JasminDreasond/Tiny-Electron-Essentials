@@ -88,11 +88,15 @@ root.on(RootEvents.CreateFirstWindow, () => {
   }));
 
   root.on(RootEvents.ReadyToShow, () => {
-    instance.ping({
-      exe: app.getPath('exe'),
-      icon: root.getIcon(),
-      title: root.getTitle(),
-    });
+    const tinyPing = () =>
+      instance.ping({
+        exe: app.getPath('exe'),
+        icon: root.getIcon(),
+        title: root.getTitle(),
+      });
+
+    tinyPing();
+    root.on(RootEvents.DOMContentLoaded, () => tinyPing());
   });
 
   console.log(`Instance index: ${instance.getIndex()}`);

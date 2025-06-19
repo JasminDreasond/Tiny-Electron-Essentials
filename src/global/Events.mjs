@@ -34,6 +34,7 @@
  * @property {string} ConsoleMessage      - Sends a message to be printed in the renderer process console for debugging purposes.
  * @property {string} ElectronCacheValues - Requests or responds with cached Electron-related values (e.g., user agent, versions, etc.).
  * @property {string} Ping                - Sends a ping signal to check the connectivity or liveness of the IPC channel.
+ * @property {string} DOMContentLoaded    - Fired when the renderer has loaded the DOM content completely.
  * @property {string} Resize              - Resizes the application window to the specified width and height.
  * @property {string} ShowApp             - Brings the entire application to the foreground, typically from the system tray or background.
  */
@@ -68,6 +69,7 @@ export const AppEvents = {
   ConsoleMessage: 'console-message',
   ElectronCacheValues: 'electron-cache-values',
   Ping: 'ping',
+  DOMContentLoaded: 'DOMContentLoaded',
   Resize: 'resize',
   ShowApp: 'tiny-app-is-show',
 };
@@ -89,6 +91,7 @@ export const AppEvents = {
  * @property {string} Ready              - Emitted when the application has fully initialized and is ready to start.
  * @property {string} CreateFirstWindow  - Emitted to signal the creation of the first application window during startup.
  * @property {string} ReadyToShow        - Emitted when the window is fully initialized and ready to be displayed, but not yet shown.
+ * @property {string} DOMContentLoaded   - Emitted when the renderer process completes loading the DOM content.
  * @property {string} ShowApp            - Emitted when the application window is actually shown to the user after being ready.
  */
 
@@ -104,6 +107,7 @@ export const RootEvents = {
   Ready: 'Ready',
   CreateFirstWindow: 'CreateFirstWindow',
   ReadyToShow: 'ReadyToShow',
+  DOMContentLoaded: 'DOMContentLoaded',
   ShowApp: 'ShowApp',
 };
 

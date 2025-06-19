@@ -464,6 +464,11 @@ class TinyElectronRoot {
 
     ipcMain.on(this.#AppEvents.AppQuit, () => this.quit());
 
+    ipcMain.on(this.#AppEvents.DOMContentLoaded, (event, data) => {
+      const win = getWinInstance(event);
+      if (win) this.#emit(RootEvents.DOMContentLoaded, win, data);
+    });
+
     // Set proxy
     this.#ipcResponder.on(this.#AppEvents.SetProxy, (event, config, res) => {
       const win = this.#getWin(event);
@@ -1208,6 +1213,35 @@ class TinyElectronRoot {
         `[getWin Error] No window found for the given key "${key}". Check if the window was created.`,
       );
     return winObj.getWin();
+  }
+
+  /**
+   * Retrieves a window instance by its Electron window ID.
+   *
+   * @param {number} id - The Electron window ID to search for.
+   * @returns {TinyWinInstance} The window instance matching the given ID.
+   *
+   * @throws {TypeError} If the provided ID is not a valid number.
+   * @throws {Error} If no window instance with the given ID is found.
+   */
+  getWinInstanceById(id) {
+    if (typeof id !== 'number' || !Number.isInteger(id) || id < 0)
+      throw new TypeError('Invalid argument: "id" must be a non-negative integer.');
+
+    if (
+      this.#win &&
+      !this.#win.isDestroyed() &&
+      !this.#win.isPreparingDestroy() &&
+      this.#win.getWin().id === id
+    )
+      return this.#win;
+    let selected = null;
+    this.#wins.forEach((value) => {
+      if (!value.isDestroyed() && !value.isPreparingDestroy() && value.getWin().id === id)
+        selected = value;
+    });
+    if (selected) return selected;
+    throw new Error(`[getWinInstanceById] No window instance found with ID ${id}.`);
   }
 
   /**

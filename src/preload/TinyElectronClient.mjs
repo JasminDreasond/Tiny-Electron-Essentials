@@ -955,7 +955,12 @@ class TinyElectronClient {
 
     // Ready
     window.addEventListener('DOMContentLoaded', () => {
-      this.#emit(RootEvents.Ready);
+      const entries = performance.getEntriesByType('navigation');
+      const type =
+        // @ts-ignore
+        entries.length > 0 && typeof entries[0].type === 'string' ? entries[0].type : null;
+      ipcRenderer.send(this.#AppEvents.DOMContentLoaded, { type });
+      this.#emit(RootEvents.Ready, { type });
     });
   }
 }
