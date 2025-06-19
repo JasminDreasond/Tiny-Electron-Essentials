@@ -78,8 +78,8 @@ client.on(RootEvents.Ready, () => {
   win.setTitle('My Pudding App');
   win.setIcon('../icons/favicon.png');
 
-  win.addMenuButton('Home', () => console.log('Home'));
-  win.addMenuButton('Settings', () => console.log('Settings'));
+  win.addMenuButton('Home', { onClick: () => console.log('Home') });
+  win.addMenuButton('Settings', { onClick: () => console.log('Settings') });
   setTimeout(() => {
     win.hideMenu();
     setTimeout(() => win.showMenu(), 1000);

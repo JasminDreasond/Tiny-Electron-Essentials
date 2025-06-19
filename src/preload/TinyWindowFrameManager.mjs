@@ -221,6 +221,7 @@ class TinyWindowFrameManager {
         --frame-font-color: white;
         --frame-font-blur-color: rgba(255, 255, 255, 0.6);
         --frame-button-hover-background: rgba(255, 255, 255, 0.1);
+        --frame-button-active-background: rgba(255, 255, 255, 0.2);
 
         /* Icons */
         --frame-icon-size: 20px;
@@ -403,6 +404,12 @@ class TinyWindowFrameManager {
       ${this.getElementName('.frame-menu button:hover', '', `body.${this.#blurClass}`)},
       ${this.getElementName('.frame-buttons button:hover', '', `body.${this.#blurClass}`)} {
         color: var(--frame-font-color);
+      }
+
+      /* Active effects */
+      ${this.getElementName('.frame-buttons button:active')},
+      ${this.getElementName('.frame-menu button:active')} {
+        background-color: var(--frame-button-active-background);
       }
     `;
     document.head.prepend(style);
