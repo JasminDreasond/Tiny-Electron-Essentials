@@ -497,6 +497,12 @@ class TinyElectronRoot {
       else res(null);
     });
 
+    this.#ipcResponder.on(this.#AppEvents.WindowClose, (event, _value, res) => {
+      const win = getWinInstance(event);
+      if (win) win.getWin().close();
+      else res(null);
+    });
+
     this.#ipcResponder.on(this.#AppEvents.WindowShow, (event, _value, res) => {
       const win = getWinInstance(event);
       if (win) res(win.toggleVisible(true));

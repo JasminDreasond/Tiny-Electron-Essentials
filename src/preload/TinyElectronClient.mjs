@@ -74,6 +74,9 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * Hides the application window from view (but does not quit the app).
  * @property {() => Promise<void>} hide
  *
+ * Closes the application window (but does not quit the app).
+ * @property {() => Promise<void>} close
+ *
  * Maximizes the application window to fill the screen.
  * @property {() => Promise<void>} maximize
  *
@@ -526,6 +529,14 @@ class TinyElectronClient {
   }
 
   /**
+   * Closes the application window (but does not quit the app).
+   * @returns {Promise<void>}
+   */
+  close() {
+    return this.#ipcRequest.send(this.#AppEvents.WindowClose);
+  }
+
+  /**
    * Maximizes the application window to fill the screen.
    * @returns {Promise<void>}
    */
@@ -692,6 +703,7 @@ class TinyElectronClient {
 
       show: () => this.show(),
       hide: () => this.hide(),
+      close: () => this.close(),
 
       maximize: () => this.maximize(),
       unmaximize: () => this.unmaximize(),

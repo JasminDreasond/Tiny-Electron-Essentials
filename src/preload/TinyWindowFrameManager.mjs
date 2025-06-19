@@ -119,6 +119,12 @@ class TinyWindowFrameManager {
       else throw new Error('');
     }
 
+    btn.minimize.addEventListener('click', () => this.#client.minimize());
+    btn.close.addEventListener('click', () => this.#client.close());
+    btn.maximize.addEventListener('click', () =>
+      this.#client.isMaximized() ? this.#client.unmaximize() : this.#client.maximize(),
+    );
+
     // Build top sections respecting icon always at the end
     const buildSection = (side, items) => {
       const section = side === 'left' ? topLeft : topRight;
