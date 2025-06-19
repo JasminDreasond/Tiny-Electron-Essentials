@@ -48,6 +48,7 @@ class TinyWinInstance {
     return this.#AppEvents[value];
   }
 
+  #preparingDestroy = false;
   #visible = false;
   #ready = false;
 
@@ -442,11 +443,21 @@ class TinyWinInstance {
   }
 
   /**
+   * Checks whether the internal BrowserWindow instance is preparing to be destroyed.
+   *
+   * @returns {boolean} `true` if the window is being destroyed.
+   */
+  isPreparingDestroy() {
+    return this.#preparingDestroy;
+  }
+
+  /**
    * Destroys the current BrowserWindow instance.
    *
    * @returns {void}
    */
   destroy() {
+    this.#preparingDestroy = true;
     if (!this.isDestroyed()) this.#win.destroy();
   }
 }

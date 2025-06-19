@@ -28,6 +28,7 @@
  * @property {string} WindowHide          - Hides the application window from view.
  * @property {string} WindowShow          - Shows the application window if hidden.
  * @property {string} WindowClose         - Closes the application window.
+ * @property {string} WindowClose         - Destroy the application window.
  * @property {string} ChangeAppIcon       - Changes the icon of the application window dynamically.
  * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application dynamically.
  * @property {string} ConsoleMessage      - Sends a message to be printed in the renderer process console for debugging purposes.
@@ -60,6 +61,7 @@ export const AppEvents = {
   ReadyToShow: 'window-ready-to-show',
   WindowHide: 'window-hide',
   WindowClose: 'window-close',
+  WindowDestroy: 'window-destroy',
   WindowShow: 'window-show',
   ChangeAppIcon: 'change-app-icon',
   ChangeTrayIcon: 'change-tray-icon',

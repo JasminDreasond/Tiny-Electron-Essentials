@@ -503,6 +503,12 @@ class TinyElectronRoot {
       else res(null);
     });
 
+    this.#ipcResponder.on(this.#AppEvents.WindowDestroy, (event, _value, res) => {
+      const win = getWinInstance(event);
+      if (win) win.destroy();
+      else res(null);
+    });
+
     this.#ipcResponder.on(this.#AppEvents.WindowShow, (event, _value, res) => {
       const win = getWinInstance(event);
       if (win) res(win.toggleVisible(true));
@@ -768,7 +774,13 @@ class TinyElectronRoot {
 
       // Prevent Close
       const minimize = isMain ? this.getMinimizeOnClose() : this.getMinimizeOnCloseFor(index);
-      if (minimize && newInstance.isReady() && !this.isQuiting()) {
+      if (
+        !newInstance.isPreparingDestroy() &&
+        !newInstance.isDestroyed() &&
+        minimize &&
+        newInstance.isReady() &&
+        !this.isQuiting()
+      ) {
         event.preventDefault();
         newInstance.toggleVisible(false);
         return false;
