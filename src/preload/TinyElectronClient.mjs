@@ -375,79 +375,138 @@ class TinyElectronClient {
 
   /** @type {Record<string, any>} */
   cache = {};
-
-  /** @param {Record<string,*>} data */
+  /**
+   * Sets the initial data received on the first ping from the window.
+   *
+   * @param {Record<string,*>} data - The initial data object.
+   */
   #firstPing(data) {
     this.#pinged = true;
     this.data = data;
   }
 
-  /** @param {Record<string,*>} value */
+  /**
+   * Updates the cached data of the window instance.
+   *
+   * @param {Record<string,*>} value - The cache data object to store.
+   */
   #setCache(value) {
     this.cache = value;
   }
 
-  /** @param {boolean} value */
+  /**
+   * Sets the visibility status of the window.
+   *
+   * @param {boolean} value - True if the window is visible, false otherwise.
+   */
   #setIsVisible(value) {
     this.#visible = value;
   }
 
-  /** @param {boolean} value */
+  /**
+   * Sets the fullscreen status of the window.
+   *
+   * @param {boolean} value - True if the window is in fullscreen mode, false otherwise.
+   */
   #setIsFullScreen(value) {
     this.#fullscreen = value;
   }
 
-  /** @param {boolean} value */
+  /**
+   * Sets the focus status of the window.
+   *
+   * @param {boolean} value - True if the window is focused, false otherwise.
+   */
   #setIsFocused(value) {
     this.#focused = value;
   }
 
-  /** @param {boolean} value */
+  /**
+   * Sets whether the application is shown or hidden.
+   *
+   * @param {boolean} value - True if the application is shown, false if hidden.
+   */
   #setShowStatus(value) {
     this.#appShow = value;
   }
 
-  /** @param {boolean} value */
+  /**
+   * Sets the maximized status of the window.
+   *
+   * @param {boolean} value - True if the window is maximized, false otherwise.
+   */
   #setIsMaximized(value) {
     this.#maximized = value;
   }
 
-  /** @returns {Record<string,*>} */
+  /**
+   * Retrieves the cached data of the window.
+   *
+   * @returns {Record<string,*>} The cached data object.
+   */
   getCache() {
     return this.cache;
   }
 
-  /** @returns {Record<string,*>} */
+  /**
+   * Retrieves the latest data received from the window.
+   *
+   * @returns {Record<string,*>} The current data object.
+   */
   getData() {
     return this.data;
   }
 
-  /** @returns {boolean} */
+  /**
+   * Gets whether the application is currently shown.
+   *
+   * @returns {boolean} True if the application is shown, false if hidden.
+   */
   getShowStatus() {
     return this.#appShow;
   }
 
-  /** @returns {boolean} */
+  /**
+   * Checks whether the window is in fullscreen mode.
+   *
+   * @returns {boolean} True if the window is in fullscreen, false otherwise.
+   */
   isFullScreen() {
     return this.#fullscreen;
   }
 
-  /** @returns {boolean} */
+  /**
+   * Checks whether the window has received the first ping.
+   *
+   * @returns {boolean} True if the window has been pinged, false otherwise.
+   */
   isPinged() {
     return this.#pinged;
   }
 
-  /** @returns {boolean} */
+  /**
+   * Checks whether the window is currently focused.
+   *
+   * @returns {boolean} True if the window is focused, false otherwise.
+   */
   isFocused() {
     return this.#focused;
   }
 
-  /** @returns {boolean} */
+  /**
+   * Checks whether the window is currently visible.
+   *
+   * @returns {boolean} True if the window is visible, false otherwise.
+   */
   isVisible() {
     return this.#visible;
   }
 
-  /** @returns {boolean} */
+  /**
+   * Checks whether the window is currently maximized.
+   *
+   * @returns {boolean} True if the window is maximized, false otherwise.
+   */
   isMaximized() {
     return this.#maximized;
   }
