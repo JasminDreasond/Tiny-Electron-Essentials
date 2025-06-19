@@ -50,7 +50,7 @@ class TinyWindowFrameManager {
     this.#client = client;
 
     this.#createStructure();
-    if (applyDefaultStyles) this.#applyDefaultStyles();
+    this.#applyDefaultStyles(applyDefaultStyles);
   }
 
   #createStructure() {
@@ -178,6 +178,8 @@ class TinyWindowFrameManager {
     };
 
     const client = this.#client;
+    if (window.innerHeight === screen.height && window.innerWidth === screen.width)
+      document.body.classList.add(this.#fullscreenClass);
     if (document.hasFocus()) document.body.classList.add(this.#focusClass);
     else document.body.classList.add(this.#blurClass);
 
@@ -205,7 +207,7 @@ class TinyWindowFrameManager {
     this.#checkMenuVisibility();
   }
 
-  #applyDefaultStyles() {
+  #applyDefaultStyles(applyDefaultStyles = false) {
     const root = document.createElement('style');
     root.id = 'electron-window-root-style';
     root.textContent = `
@@ -244,6 +246,10 @@ class TinyWindowFrameManager {
         --frame-menu-gap: 4px;
       }
     `;
+
+    document.head.prepend(root);
+    this.styles.root = root;
+    if (!applyDefaultStyles) return;
 
     const style = document.createElement('style');
     style.id = 'electron-window-style';
@@ -443,11 +449,22 @@ class TinyWindowFrameManager {
       ${this.getElementName('.frame-menu > button:active')} {
         background-color: var(--frame-button-active-background);
       }
+
+      /* Full Screen */
+      ${this.getElementName('.custom-window-frame', '', `body.${this.#fullscreenClass}`)} {
+        display: none !important;
+      }
+
+      ${this.getElementName('.window-content', '', `body.${this.#fullscreenClass}`)} {
+        border-bottom: 0px solid transparent !important;
+        border-left: 0px solid transparent !important;
+        border-right: 0px solid transparent !important;
+        border-bottom-left-radius: 0px !important;
+        border-bottom-right-radius: 0px !important;
+      }
     `;
     document.head.prepend(style);
-    document.head.prepend(root);
     this.styles.default = style;
-    this.styles.root = root;
   }
 
   /** 🔥 Internal to update menu visibility */
