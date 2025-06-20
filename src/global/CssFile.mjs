@@ -97,11 +97,19 @@ export const getDefaultWindowFrameRoot = () => {
  * @param {string} [settings.blurClass]
  * Class name applied to `<body>` to indicate blur mode, changing color schemes for certain elements.
  *
+ * @param {string} [settings.maximizedClass]
+ * Class name applied to `<body>` to indicate maximized mode, changing color schemes for certain elements.
+ *
  * @returns {string} CSS string for the full custom window frame styling.
  *
  * @throws {Error} If any of the settings are invalid, such as missing `getElementName` or invalid class names.
  */
-export const getDefaultWindowFrameStyle = ({ getElementName, fullscreenClass, blurClass } = {}) => {
+export const getDefaultWindowFrameStyle = ({
+  getElementName,
+  fullscreenClass,
+  blurClass,
+  maximizedClass,
+} = {}) => {
   if (typeof getElementName !== 'function')
     throw new Error(
       'Invalid argument: "getElementName" must be a function that returns CSS selectors.',
@@ -308,12 +316,21 @@ export const getDefaultWindowFrameStyle = ({ getElementName, fullscreenClass, bl
         background-color: var(--frame-button-active-background);
       }
 
-      /* Full Screen */
+      /* Full Screen and Maximize */
       ${getElementName('.custom-window-frame', '', `body.${fullscreenClass}`)} {
         display: none !important;
       }
 
-      ${getElementName('.window-content', '', `body.${fullscreenClass}`)} {
+      ${getElementName('.custom-window-frame', '', `body.${maximizedClass}`)} {
+        border-top-left-radius: 0px !important;
+        border-top-right-radius: 0px !important;
+        border-top: 0px solid transparent !important;
+        border-left: 0px solid transparent !important;
+        border-right: 0px solid transparent !important;
+      }
+
+      ${getElementName('.window-content', '', `body.${fullscreenClass}`)},
+      ${getElementName('.window-content', '', `body.${maximizedClass}`)} {
         border-bottom: 0px solid transparent !important;
         border-left: 0px solid transparent !important;
         border-right: 0px solid transparent !important;

@@ -123,16 +123,27 @@ class TinyWindowFrameManager {
         );
     }
 
+    /**
+     * @param {boolean} [isMaximized=this.#client.isMaximized()]
+     * @returns {boolean}
+     */
+    const changeMaximizeIcon = (isMaximized = this.#client.isMaximized()) => {
+      if (!isMaximized) {
+        document.body.classList.remove(this.#maximizedClass);
+        btn.maximize.innerHTML = this.#maximizeIcon;
+      } else {
+        document.body.classList.add(this.#maximizedClass);
+        btn.maximize.innerHTML = this.#unmaximizeIcon;
+      }
+      return isMaximized;
+    };
+
     btn.minimize.addEventListener('click', () => this.#client.minimize());
     btn.close.addEventListener('click', () => this.#client.close());
     btn.maximize.addEventListener('click', () => {
-      if (this.#client.isMaximized()) {
-        this.#client.unmaximize();
-        btn.maximize.innerHTML = this.#maximizeIcon;
-      } else {
-        this.#client.maximize();
-        btn.maximize.innerHTML = this.#unmaximizeIcon;
-      }
+      const isMaximized = changeMaximizeIcon();
+      if (isMaximized) this.#client.unmaximize();
+      else this.#client.maximize();
     });
 
     // Build top sections respecting icon always at the end
@@ -190,13 +201,12 @@ class TinyWindowFrameManager {
     const client = this.#client;
     if (window.innerHeight === screen.height && window.innerWidth === screen.width)
       document.body.classList.add(this.#fullscreenClass);
+
     if (document.hasFocus()) document.body.classList.add(this.#focusClass);
     else document.body.classList.add(this.#blurClass);
 
-    client.on(RootEvents.IsMaximized, (isMaximized) => {
-      if (isMaximized) document.body.classList.add(this.#maximizedClass);
-      else document.body.classList.remove(this.#maximizedClass);
-    });
+    changeMaximizeIcon();
+    client.on(RootEvents.IsMaximized, (isMaximized) => changeMaximizeIcon(isMaximized));
 
     client.on(RootEvents.IsFullScreen, (isFullScreen) => {
       if (isFullScreen) document.body.classList.add(this.#fullscreenClass);
@@ -246,6 +256,7 @@ class TinyWindowFrameManager {
       getElementName: (className, extra, extra2) => this.getElementName(className, extra, extra2),
       fullscreenClass: this.#fullscreenClass,
       blurClass: this.#blurClass,
+      maximizedClass: this.#maximizedClass,
     });
 
     document.head.prepend(style);
