@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   getDefaultWindowFrameRoot,
   getDefaultWindowFrameStyle,
@@ -20,14 +19,41 @@ class TinyWindowFrameManager {
   #fullscreenClass = 'electron-fullscreen';
   #maximizedClass = 'electron-maximized';
 
-  #client;
   #options = {
     buttonsPosition: 'right',
     titlePosition: 'center',
     buttonsMap: ['minimize', 'maximize', 'close'],
   };
 
-  elements = {};
+  /** @type {TinyElectronClient} */
+  #client;
+
+  /**
+   * @typedef {{
+   *  rootContent: HTMLDivElement;
+   *  root: HTMLDivElement;
+   *  frame: HTMLDivElement;
+   *  top: HTMLDivElement;
+   *  menuLeft: HTMLDivElement;
+   *  menuRight: HTMLDivElement;
+   *  icon: HTMLDivElement;
+   *  title: HTMLDivElement;
+   *  topLeft: HTMLDivElement;
+   *  topCenter: HTMLDivElement;
+   *  topRight: HTMLDivElement;
+   *  buttons: {
+   *    root: HTMLDivElement;
+   *    maximize: HTMLButtonElement;
+   *    minimize: HTMLButtonElement;
+   *    close: HTMLButtonElement;
+   *  }
+   * }} FrameElements
+   */
+
+  /** @type {FrameElements} */
+  #elements;
+
+  /** @type {Record<string, HTMLStyleElement>} */
   styles = {};
 
   /**
@@ -61,39 +87,13 @@ class TinyWindowFrameManager {
     buttonsMap = ['minimize', 'maximize', 'close'],
     client,
   } = {}) {
+    if (!(client instanceof TinyElectronClient)) throw new Error('');
+
     this.#options.buttonsPosition = buttonsPosition;
     this.#options.titlePosition = titlePosition;
     this.#options.buttonsMap = buttonsMap;
     this.#client = client;
 
-    this.#createStructure();
-    this.#applyDefaultStyles(applyDefaultStyles);
-  }
-
-  /**
-   * Save CSS content into a .css file.
-   *
-   * @param {string} directory - The folder path where the file will be saved.
-   * @param {'default'|'root'} filename - The name of the css content.
-   * @returns {Promise<void>}
-   * @throws {TypeError} If directory is not a valid non-empty string.
-   * @throws {TypeError} If filename is not 'default' or 'root'.
-   * @throws {Error} If CSS content for the given filename does not exist.
-   * @throws {Error} If the file cannot be written.
-   */
-  saveCssFileStructure(directory, filename) {
-    if (typeof directory !== 'string' || !directory.trim())
-      throw new TypeError('The "directory" argument must be a non-empty string.');
-
-    if (filename !== 'default' && filename !== 'root')
-      throw new TypeError('The "filename" argument must be either "default" or "root".');
-
-    const style = this.styles[filename];
-    if (!style || !style.textContent) throw new Error(`No CSS content found for "${filename}".`);
-    return saveCssFile(directory, `electron-${filename}.css`, style.textContent);
-  }
-
-  #createStructure() {
     const root = document.createElement('div');
     root.id = this.#windowRoot;
 
@@ -138,6 +138,7 @@ class TinyWindowFrameManager {
 
     // Buttons
     const buttons = document.createElement('div');
+    /** @type {Record<string, HTMLButtonElement>} */
     const btn = {
       maximize: document.createElement('button'),
       minimize: document.createElement('button'),
@@ -185,7 +186,12 @@ class TinyWindowFrameManager {
       else this.#client.maximize();
     });
 
-    // Build top sections respecting icon always at the end
+    /**
+     *  Build top sections respecting icon always at the end
+     *
+     * @param {'left'|'right'} side
+     * @param {Array<HTMLElement|null>} items
+     */
     const buildSection = (side, items) => {
       const section = side === 'left' ? topLeft : topRight;
       items.forEach((item) => {
@@ -215,7 +221,7 @@ class TinyWindowFrameManager {
     moveBodyContentTo(rootContent);
     document.body.prepend(root);
 
-    this.elements = {
+    this.#elements = {
       rootContent,
       root,
       frame,
@@ -229,11 +235,12 @@ class TinyWindowFrameManager {
       topRight,
       buttons: {
         root: buttons,
-        ...btn,
+        maximize: btn.maximize,
+        minimize: btn.minimize,
+        close: btn.close,
       },
     };
 
-    const client = this.#client;
     if (window.innerHeight === screen.height && window.innerWidth === screen.width)
       document.body.classList.add(this.#fullscreenClass);
 
@@ -274,6 +281,32 @@ class TinyWindowFrameManager {
 
     // Check menu visibility initially
     this.#checkMenuVisibility();
+
+    // Init default style
+    this.#applyDefaultStyles(applyDefaultStyles);
+  }
+
+  /**
+   * Save CSS content into a .css file.
+   *
+   * @param {string} directory - The folder path where the file will be saved.
+   * @param {'default'|'root'} filename - The name of the css content.
+   * @returns {Promise<void>}
+   * @throws {TypeError} If directory is not a valid non-empty string.
+   * @throws {TypeError} If filename is not 'default' or 'root'.
+   * @throws {Error} If CSS content for the given filename does not exist.
+   * @throws {Error} If the file cannot be written.
+   */
+  saveCssFileStructure(directory, filename) {
+    if (typeof directory !== 'string' || !directory.trim())
+      throw new TypeError('The "directory" argument must be a non-empty string.');
+
+    if (filename !== 'default' && filename !== 'root')
+      throw new TypeError('The "filename" argument must be either "default" or "root".');
+
+    const style = this.styles[filename];
+    if (!style || !style.textContent) throw new Error(`No CSS content found for "${filename}".`);
+    return saveCssFile(directory, `electron-${filename}.css`, style.textContent);
   }
 
   #applyDefaultStyles(applyDefaultStyles = false) {
@@ -300,42 +333,47 @@ class TinyWindowFrameManager {
 
   /** 🔥 Internal to update menu visibility */
   #checkMenuVisibility() {
-    const menuRight = this.elements.menuRight;
+    const menuRight = this.#elements.menuRight;
     menuRight.style.display = menuRight.children.length === 0 ? 'none' : 'flex';
-    const menuLeft = this.elements.menuLeft;
+    const menuLeft = this.#elements.menuLeft;
     menuLeft.style.display = menuLeft.children.length === 0 ? 'none' : 'flex';
   }
 
-  /** ✅ Content container */
+  /**
+   * ✅ Content container
+   *
+   * @returns {HTMLDivElement}
+   */
   get content() {
-    return this.elements.rootContent;
+    return this.#elements.rootContent;
   }
 
-  /** ✅ Add any custom HTMLElement to menu */
-  addMenuCustomElement(element) {
-    this.elements.menu.appendChild(element);
+  /**
+   * ✅ Add any custom HTMLElement to menu
+   * @param {HTMLElement} element
+   * @param {'left'|'right'} [position]
+   */
+  addMenuCustomElement(element, position = 'left') {
+    const menu = this.getMenuElement(position);
+    menu.appendChild(element);
     this.#checkMenuVisibility();
   }
 
+  /**
+   * @param {'left'|'right'} [position]
+   */
   showMenu(position = 'left') {
-    const menu =
-      position === 'left'
-        ? this.elements.menuLeft
-        : position === 'right'
-          ? this.elements.menuRight
-          : null;
+    const menu = this.getMenuElement(position);
     menu.classList.remove('menu-fade-out');
     menu.classList.add('menu-fade-in');
     menu.style.display = 'flex';
   }
 
+  /**
+   * @param {'left'|'right'} [position]
+   */
   hideMenu(position = 'left') {
-    const menu =
-      position === 'left'
-        ? this.elements.menuLeft
-        : position === 'right'
-          ? this.elements.menuRight
-          : null;
+    const menu = this.getMenuElement(position);
     menu.classList.remove('menu-fade-in');
     menu.classList.add('menu-fade-out');
     setTimeout(() => {
@@ -343,32 +381,52 @@ class TinyWindowFrameManager {
     }, 200);
   }
 
-  /** ✅ Get menu DOM element */
+  /**
+   * ✅ Get menu DOM element
+   *
+   * @param {'left'|'right'} [position]
+   */
   getMenuElement(position = 'left') {
     const menu =
       position === 'left'
-        ? this.elements.menuLeft
+        ? this.#elements.menuLeft
         : position === 'right'
-          ? this.elements.menuRight
+          ? this.#elements.menuRight
           : null;
+
+    if (!menu) throw new Error('');
     return menu;
   }
 
-  /** ✅ Add a button to the menu bar */
-  addMenuButton(label, { onClick, position = 'left', id = null } = {}) {
+  /**
+   * ✅ Add a button to the menu bar
+   *
+   * @param {string} label
+   * @param {Object} [settings={}]
+   * @param {(this: GlobalEventHandlers, ev: MouseEvent) => any} [settings.onClick]
+   * @param {'left'|'right'} [settings.position='left']
+   * @param {string} [settings.id]
+   */
+  addMenuButton(label, { onClick, position = 'left', id } = {}) {
+    if (typeof onClick !== 'function') throw new Error('');
+
     const btn = document.createElement('button');
     btn.textContent = label;
     if (id) btn.dataset.menuId = id;
 
     btn.onclick = onClick;
-    if (position === 'left') this.elements.menuLeft.appendChild(btn);
-    if (position === 'right') this.elements.menuRight.appendChild(btn);
+    if (position === 'left') this.#elements.menuLeft.appendChild(btn);
+    if (position === 'right') this.#elements.menuRight.appendChild(btn);
     this.#checkMenuVisibility();
     return btn;
   }
 
-  removeMenuButton(idOrElement) {
-    const menu = this.elements.menu;
+  /**
+   * @param {string|HTMLElement} idOrElement
+   * @param {'left'|'right'} [position='left']
+   */
+  removeMenuButton(idOrElement, position = 'left') {
+    const menu = this.getMenuElement(position);
     if (typeof idOrElement === 'string') {
       const el = menu.querySelector(`[data-menu-id="${idOrElement}"]`);
       if (el) el.remove();
@@ -378,31 +436,47 @@ class TinyWindowFrameManager {
     this.#checkMenuVisibility();
   }
 
-  /** ✅ Remove all menu buttons */
-  clearMenu() {
-    this.elements.menu.innerHTML = '';
+  /**
+   * ✅ Remove all menu buttons
+   * @param {'left'|'right'} [position='left']
+   */
+  clearMenu(position = 'left') {
+    const menu = this.getMenuElement(position);
+    menu.innerHTML = '';
     this.#checkMenuVisibility();
   }
 
-  /** ✅ Change the window title */
+  /**
+   * ✅ Change the window title
+   *
+   * @param {string} text
+   */
   setTitle(text) {
-    this.elements.title.textContent = text;
+    this.#elements.title.textContent = text;
   }
 
-  /** ✅ Set or change the window icon */
+  /**
+   * ✅ Set or change the window icon
+   *
+   * @param {string} url
+   */
   setIcon(url) {
     if (url.length > 0) {
-      this.elements.icon.style.backgroundImage = `url(${url})`;
-      this.elements.topLeft.prepend(this.elements.icon);
+      this.#elements.icon.style.backgroundImage = `url(${url})`;
+      this.#elements.topLeft.prepend(this.#elements.icon);
     } else this.removeIcon();
   }
 
   removeIcon() {
-    this.elements.icon.remove();
-    this.elements.icon.style.backgroundImage = '';
+    this.#elements.icon.remove();
+    this.#elements.icon.style.backgroundImage = '';
   }
 
-  /** ✅ Apply custom CSS */
+  /**
+   * ✅ Apply custom CSS
+   *
+   * @param {string} css
+   */
   applyCustomStyle(css) {
     const style = document.createElement('style');
     style.textContent = css;
