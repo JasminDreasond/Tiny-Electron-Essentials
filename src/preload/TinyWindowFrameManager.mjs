@@ -8,6 +8,50 @@ import { RootEvents } from '../global/Events.mjs';
 import { moveBodyContentTo } from '../global/Utils.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
 
+/**
+ * TinyWindowFrameManager
+ *
+ * A powerful and fully customizable window frame manager for Electron applications
+ * that use frameless windows (`frame: false`). It replaces the native title bar with
+ * a fully configurable HTML/CSS/JS interface, allowing total control over window borders,
+ * title positioning, icons, menus, and control buttons (minimize, maximize, close).
+ *
+ * ✅ Features:
+ * - Fully draggable top bar and borders.
+ * - Highly customizable buttons: change order, position (left/right), and icons.
+ * - Configurable window title alignment: left, center, or right.
+ * - Dynamic menu sections on left and right, with support for custom elements and buttons.
+ * - Automatic handling of Electron window events: minimize, maximize, unmaximize, focus, blur, fullscreen.
+ * - Fully responsive to window state changes (maximized, fullscreen, focus).
+ * - Dynamic CSS styling with optional default styles, or supply your own CSS.
+ * - Change internal icons and class names via constructor or dynamically.
+ * - Clean, semantic, and framework-free: pure HTML, CSS, and JavaScript.
+ *
+ * 🚀 Usage example:
+ * ```js
+ * const frame = new TinyWindowFrameManager({
+ *   client: myElectronClient,
+ *   titlePosition: 'center',
+ *   buttonsPosition: 'right',
+ *   buttonsMap: ['minimize', 'maximize', 'close'],
+ *   icons: { minimize: '-', maximize: '▢', unmaximize: '▣', close: '✖' },
+ *   classes: { focus: 'win-focus', blur: 'win-blur', fullscreen: 'win-fullscreen', maximized: 'win-maximized' },
+ * });
+ *
+ * frame.setTitle('My Tiny App');
+ * frame.setIcon('icon.png');
+ * frame.addMenuButton('Settings', { onClick: () => openSettings(), position: 'right' });
+ * ```
+ *
+ * 🔧 Requirements:
+ * - Works only with Electron windows that are frameless (`frame: false`), transparent if desired, and `titleBarStyle: 'hidden'`.
+ * - Requires a client controller (like TinyElectronClient) that communicates with Electron's main process to handle window actions.
+ *
+ * 💡 Tip:
+ * You can completely replace or override the CSS with your own themes, animations, and layout changes.
+ *
+ * @class
+ */
 class TinyWindowFrameManager {
   #windowRoot = '';
   #minimizeIcon = '';
