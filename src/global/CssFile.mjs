@@ -47,13 +47,15 @@ export const getDefaultWindowFrameRoot = () => {
         /* Layout */
         --frame-root-background: #fff;
         --frame-height: 32px;
-        --frame-border-size: 1px;
 
         /* Colors */
         --frame-background: rgba(30, 30, 30, 1);
         --frame-blur-background: rgba(30, 30, 30, 0.95);
+
+        /* Border */
         --frame-border-color: rgb(76 76 76);
         --frame-border-radius: 7px;
+        --frame-border-size: 1px;
 
         /* Text */
         --frame-title-font-size: 8pt;
@@ -69,6 +71,8 @@ export const getDefaultWindowFrameRoot = () => {
         --frame-button-width: 32px;
         --frame-button-hover-background: rgba(255, 255, 255, 0.1);
         --frame-button-active-background: rgba(255, 255, 255, 0.2);
+        --frame-close-button-hover-background: #C42B1C;
+        --frame-close-button-active-background: #B12719;
 
         /* Padding */
         --frame-padding-x: 8px;
@@ -298,6 +302,10 @@ export const getDefaultWindowFrameStyle = ({
         -webkit-app-region: no-drag;
       }
 
+      ${getElementName('.frame-top-left .frame-menu:first-child')} {
+        padding-left: var(--frame-padding-x);
+      }
+
       /* Blur effects */
       ${getElementName('.frame-title', '', `body.${blurClass}`)},
       ${getElementName('.frame-menu > button', '', `body.${blurClass}`)},
@@ -354,11 +362,11 @@ export const getDefaultWindowFrameStyle = ({
 
       /* Close Button */
       ${getElementName('.frame-buttons > .btn-close:hover')} {
-        background-color: #C42B1C;
+        background-color: var(--frame-close-button-hover-background);
       }
 
       ${getElementName('.frame-buttons > .btn-close:active')} {
-        background-color: #B12719;
+        background-color: var(--frame-close-button-active-background);
       }
     `;
 };
