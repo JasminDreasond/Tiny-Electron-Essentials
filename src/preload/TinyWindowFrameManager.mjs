@@ -130,7 +130,7 @@ class TinyWindowFrameManager {
    * @param {string[]} [options.buttonsMap=['minimize', 'maximize', 'close']] - Determines which buttons appear and their order. Valid values are 'minimize', 'maximize', and 'close'.
    * @param {TinyElectronClient} [options.client] - The Electron client interface that handles window events like minimize, maximize, close, and focus.
    * @param {string} [options.windowRoot='window-root'] - The ID for the root container.
-   * @param {Object} [options.icons] - Custom icons for buttons.
+   * @param {Object} [options.icons] - Custom innerHTML icons for buttons.
    * @param {string} [options.icons.minimize='🗕']
    * @param {string} [options.icons.maximize='🗖']
    * @param {string} [options.icons.unmaximize='🗗']
