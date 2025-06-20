@@ -1483,9 +1483,19 @@ class TinyElectronClient {
         entries.length > 0 && typeof entries[0].type === 'string' ? entries[0].type : null;
 
       // Fix values
-      if (this.getChangeCount('isFocused') < 1 && isJsonObject(windowFirstConfig.bounds)) {
-        this.#setPosition([windowFirstConfig.bounds.x, windowFirstConfig.bounds.y], true);
-        this.#setSize([windowFirstConfig.bounds.width, windowFirstConfig.bounds.height], true);
+      if (isJsonObject(windowFirstConfig.bounds)) {
+        if (
+          this.getChangeCount('position') < 1 &&
+          typeof windowFirstConfig.bounds.x === 'number' &&
+          typeof windowFirstConfig.bounds.y === 'number'
+        )
+          this.#setPosition([windowFirstConfig.bounds.x, windowFirstConfig.bounds.y], true);
+        if (
+          this.getChangeCount('size') < 1 &&
+          typeof windowFirstConfig.bounds.width === 'number' &&
+          typeof windowFirstConfig.bounds.height === 'number'
+        )
+          this.#setSize([windowFirstConfig.bounds.width, windowFirstConfig.bounds.height], true);
       }
 
       if (this.getChangeCount('isFocused') < 1 && typeof windowFirstConfig.isFocused === 'boolean')
