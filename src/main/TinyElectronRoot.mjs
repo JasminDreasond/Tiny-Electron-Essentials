@@ -386,6 +386,7 @@ class TinyElectronRoot {
       const instance = getWinInstance(event);
       if (win && instance)
         res({
+          bounds: win.getBounds(),
           isFullScreenable: instance.isFullScreenable(),
           isMaximizable: instance.isMaximizable(),
           isClosable: instance.isClosable(),

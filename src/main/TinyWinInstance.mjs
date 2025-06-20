@@ -711,30 +711,83 @@ class TinyWinInstance {
         });
     });
 
-    // Resize
-    const resizeWindowEvent = () => {
-      if (this.#win)
-        this.#win.webContents.send(this.#AppEvents.Resize, {
-          value: this.#win.getSize(),
-          time: Date.now(),
-        });
+    /**
+     * Resize
+     * @param {string[]} events
+     */
+    const resizeWindowEvent = (events) => {
+      if (this.#win) {
+        for (const eventName of events)
+          this.#win.webContents.send(eventName, {
+            value: this.#win.getSize(),
+            time: Date.now(),
+          });
+      }
     };
 
-    this.#win.on('resize', resizeWindowEvent);
-    this.#win.on('resized', resizeWindowEvent);
-    this.#win.on('will-resize', resizeWindowEvent);
+    this.#win.on('resize', () => resizeWindowEvent([this.#AppEvents.Resize]));
+    this.#win.on('resized', () => resizeWindowEvent([this.#AppEvents.Resized]));
+    this.#win.on('will-resize', () => resizeWindowEvent([this.#AppEvents.WillResize]));
 
-    this.#win.on('maximize', resizeWindowEvent);
-    this.#win.on('unmaximize', resizeWindowEvent);
+    this.#win.on('maximize', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
+    this.#win.on('unmaximize', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
 
-    this.#win.on('minimize', resizeWindowEvent);
-    this.#win.on('restore', resizeWindowEvent);
+    this.#win.on('minimize', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
+    this.#win.on('restore', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
 
-    this.#win.on('enter-full-screen', resizeWindowEvent);
-    this.#win.on('leave-full-screen', resizeWindowEvent);
+    this.#win.on('enter-full-screen', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
+    this.#win.on('leave-full-screen', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
 
-    this.#win.on('enter-html-full-screen', resizeWindowEvent);
-    this.#win.on('leave-html-full-screen', resizeWindowEvent);
+    this.#win.on('enter-html-full-screen', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
+    this.#win.on('leave-html-full-screen', () =>
+      resizeWindowEvent([
+        this.#AppEvents.WillResize,
+        this.#AppEvents.Resize,
+        this.#AppEvents.Resized,
+      ]),
+    );
 
     const fullscreenEvent = () => {
       if (this.#win)
@@ -819,6 +872,14 @@ class TinyWinInstance {
       if (this.#win && this.#win.webContents)
         this.#win.webContents.send(this.#AppEvents.WindowIsMaximized, {
           value: this.#win.isMaximized(),
+          time: Date.now(),
+        });
+    });
+
+    this.#win.on('move', () => {
+      if (this.#win && this.#win.webContents)
+        this.#win.webContents.send(this.#AppEvents.WindowMove, {
+          value: this.#win.getPosition(),
           time: Date.now(),
         });
     });

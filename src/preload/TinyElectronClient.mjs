@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { ipcRenderer, contextBridge } from 'electron';
+import { isJsonObject } from 'tiny-essentials';
 import { AppEvents, RootEvents } from '../global/Events.mjs';
 import { checkEventsList, deserializeError } from '../global/Utils.mjs';
 import TinyIpcRequestManager from './TinyIpcRequestManager.mjs';
@@ -15,9 +16,28 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  */
 
 /**
+ * @typedef {Object} Bounds
+ * @property {number} x
+ * @property {number} y
+ * @property {number} height
+ * @property {number} width
+ */
+
+/**
+ * x|y
+ * @typedef {number[]} Position
+ */
+
+/**
+ * width|height
+ * @typedef {number[]} Size
+ */
+
+/**
  * Represents the current window state and its capabilities.
  *
  * @typedef {Object} WindowDataResult
+ * @property {Bounds} bounds
  * @property {boolean} isMaximizable - Indicates whether the window can be maximized.
  * @property {boolean} isClosable - Indicates whether the window can be closed.
  * @property {boolean} isFullScreenable - Indicates whether the window can enter fullscreen mode.
@@ -103,6 +123,21 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  *
  * Sends a request to forcibly focus the application window, even if it’s not currently visible or active.
  * @property {() => Promise<void>} forceFocus
+ *
+ * Retrieves the current change count for a specific key.
+ * @property {(where: string) => number} getChangeCount
+ *
+ * Retrieves all current change counters.
+ * @property {() => Record<string, number>} getAllChangeCount
+ *
+ * Retrieves the current window bounds including position and size.
+ * @property {() => Bounds} getBounds
+ *
+ * Retrieves the current size of the window.
+ * @property {() => Size} getSize
+ *
+ * Retrieves the current position of the window.
+ * @property {() => Position} getPosition
  *
  * Brings the application window to the front and gives it focus.
  * @property {() => Promise<void>} focus
@@ -411,6 +446,9 @@ class TinyElectronClient {
   #isClosable = true;
   #isFocusable = true;
 
+  /** @type {Bounds} */
+  #bounds = { x: 0, y: 0, width: 0, height: 0 };
+
   #appShow = true;
   #pinged = false;
 
@@ -461,10 +499,13 @@ class TinyElectronClient {
    * Sets the initial data received on the first ping from the window.
    *
    * @param {Record<string,*>} data - The initial data object.
+   * @param {boolean} useIt
    */
-  #firstPing(data) {
-    this.#pinged = true;
-    this.data = data;
+  #firstPing(data, useIt) {
+    if (useIt) {
+      this.#pinged = true;
+      this.data = data;
+    }
     this.#addCount('ping');
   }
 
@@ -472,9 +513,10 @@ class TinyElectronClient {
    * Updates the cached data of the window instance.
    *
    * @param {Record<string,*>} value - The cache data object to store.
+   * @param {boolean} useIt
    */
-  #setCache(value) {
-    this.cache = value;
+  #setCache(value, useIt) {
+    if (useIt) this.cache = value;
     this.#addCount('cache');
   }
 
@@ -483,9 +525,10 @@ class TinyElectronClient {
    * Increases the change counter for 'isMaximizable'.
    *
    * @param {boolean} value - The new maximizable state.
+   * @param {boolean} useIt
    */
-  #setIsMaximizable(value) {
-    this.#isMaximizable = value;
+  #setIsMaximizable(value, useIt) {
+    if (useIt) this.#isMaximizable = value;
     this.#addCount('isMaximizable');
   }
 
@@ -494,9 +537,10 @@ class TinyElectronClient {
    * Increases the change counter for 'isClosable'.
    *
    * @param {boolean} value - The new closable state.
+   * @param {boolean} useIt
    */
-  #setIsClosable(value) {
-    this.#isClosable = value;
+  #setIsClosable(value, useIt) {
+    if (useIt) this.#isClosable = value;
     this.#addCount('isClosable');
   }
 
@@ -505,9 +549,10 @@ class TinyElectronClient {
    * Increases the change counter for 'isFullScreenable'.
    *
    * @param {boolean} value - The new closable state.
+   * @param {boolean} useIt
    */
-  #setIsFullScreenable(value) {
-    this.#isFullScreenable = value;
+  #setIsFullScreenable(value, useIt) {
+    if (useIt) this.#isFullScreenable = value;
     this.#addCount('isFullScreenable');
   }
 
@@ -516,9 +561,10 @@ class TinyElectronClient {
    * Increases the change counter for 'isFocusable'.
    *
    * @param {boolean} value - The new focusable state.
+   * @param {boolean} useIt
    */
-  #setIsFocusable(value) {
-    this.#isFocusable = value;
+  #setIsFocusable(value, useIt) {
+    if (useIt) this.#isFocusable = value;
     this.#addCount('isFocusable');
   }
 
@@ -526,9 +572,10 @@ class TinyElectronClient {
    * Sets the visibility status of the window.
    *
    * @param {boolean} value - True if the window is visible, false otherwise.
+   * @param {boolean} useIt
    */
-  #setIsVisible(value) {
-    this.#visible = value;
+  #setIsVisible(value, useIt) {
+    if (useIt) this.#visible = value;
     this.#addCount('isVisible');
   }
 
@@ -536,9 +583,10 @@ class TinyElectronClient {
    * Sets the fullscreen status of the window.
    *
    * @param {boolean} value - True if the window is in fullscreen mode, false otherwise.
+   * @param {boolean} useIt
    */
-  #setIsFullScreen(value) {
-    this.#fullscreen = value;
+  #setIsFullScreen(value, useIt) {
+    if (useIt) this.#fullscreen = value;
     this.#addCount('isFullScreen');
   }
 
@@ -546,9 +594,10 @@ class TinyElectronClient {
    * Sets the focus status of the window.
    *
    * @param {boolean} value - True if the window is focused, false otherwise.
+   * @param {boolean} useIt
    */
-  #setIsFocused(value) {
-    this.#focused = value;
+  #setIsFocused(value, useIt) {
+    if (useIt) this.#focused = value;
     this.#addCount('isFocused');
   }
 
@@ -556,19 +605,49 @@ class TinyElectronClient {
    * Sets whether the application is shown or hidden.
    *
    * @param {boolean} value - True if the application is shown, false if hidden.
+   * @param {boolean} useIt
    */
-  #setShowStatus(value) {
-    this.#appShow = value;
+  #setShowStatus(value, useIt) {
+    if (useIt) this.#appShow = value;
     this.#addCount('showStatus');
+  }
+
+  /**
+   * Updates the current position of the window.
+   *
+   * @param {Position} value An array with two numbers: [x, y] representing the new position.
+   * @param {boolean} useIt
+   */
+  #setPosition(value, useIt) {
+    if (useIt) {
+      this.#bounds.x = value[0];
+      this.#bounds.y = value[1];
+    }
+    this.#addCount('position');
+  }
+
+  /**
+   * Updates the current size of the window.
+   *
+   * @param {Size} value An array with two numbers: [width, height] representing the new size.
+   * @param {boolean} useIt
+   */
+  #setSize(value, useIt) {
+    if (useIt) {
+      this.#bounds.width = value[0];
+      this.#bounds.height = value[1];
+    }
+    this.#addCount('size');
   }
 
   /**
    * Sets the maximized status of the window.
    *
    * @param {boolean} value - True if the window is maximized, false otherwise.
+   * @param {boolean} useIt
    */
-  #setIsMaximized(value) {
-    this.#maximized = value;
+  #setIsMaximized(value, useIt) {
+    if (useIt) this.#maximized = value;
     this.#addCount('isMaximized');
   }
 
@@ -588,6 +667,33 @@ class TinyElectronClient {
    */
   getData() {
     return this.data;
+  }
+
+  /**
+   * Retrieves the current window bounds including position and size.
+   *
+   * @returns {Bounds} An object containing the current x, y, width, and height of the window.
+   */
+  getBounds() {
+    return { ...this.#bounds };
+  }
+
+  /**
+   * Retrieves the current position of the window.
+   *
+   * @returns {Position} An array with two numbers: [x, y] representing the top-left corner of the window.
+   */
+  getPosition() {
+    return [this.#bounds.x, this.#bounds.y];
+  }
+
+  /**
+   * Retrieves the current size of the window.
+   *
+   * @returns {Size} An array with two numbers: [width, height] representing the width and height of the window.
+   */
+  getSize() {
+    return [this.#bounds.width, this.#bounds.height];
   }
 
   /**
@@ -725,7 +831,7 @@ class TinyElectronClient {
    */
   async requestCache() {
     const result = await this.#ipcRequest.send(this.#AppEvents.ElectronCacheValues);
-    this.#setCache(result);
+    this.#setCache(result, true);
     return result;
   }
 
@@ -1006,6 +1112,13 @@ class TinyElectronClient {
       focus: () => this.focus(),
       blur: () => this.blur(),
 
+      getBounds: () => this.getBounds(),
+      getPosition: () => this.getPosition(),
+      getSize: () => this.getSize(),
+
+      getChangeCount: (where) => this.getChangeCount(where),
+      getAllChangeCount: () => this.getAllChangeCount(),
+
       show: () => this.show(),
       hide: () => this.hide(),
       close: () => this.close(),
@@ -1174,22 +1287,24 @@ class TinyElectronClient {
 
     /**
      * @param {string} where
-     * @param {((value: any) => void)|null} callback
+     * @param {((value: any, useIt: boolean) => void)|null} callback
      * @param {{ value: any; time: number; }} data
+     * @param {string} [customPing]
      */
-    const sendEvent = (where, callback, data) => {
+    const sendEvent = (where, callback, data, customPing) => {
       const { value, time } = data;
-      if (typeof this.#eventPings[where] !== 'number') this.#eventPings[where] = 0;
+      const pingId = customPing || where;
+      if (typeof this.#eventPings[pingId] !== 'number') this.#eventPings[pingId] = 0;
       if (
         typeof time === 'number' &&
         Number.isFinite(time) &&
         !Number.isNaN(time) &&
-        time > this.#eventPings[where]
+        time > this.#eventPings[pingId]
       ) {
-        this.#eventPings[where] = time;
-        if (typeof callback === 'function') callback(value);
+        this.#eventPings[pingId] = time;
+        if (typeof callback === 'function') callback(value, true);
         this.#emit(where, value);
-      }
+      } else if (typeof callback === 'function') callback(value, false);
     };
 
     // Ready to Show
@@ -1199,7 +1314,20 @@ class TinyElectronClient {
 
     // Resize
     ipcRenderer.on(this.#AppEvents.Resize, (_event, data) =>
-      sendEvent(RootEvents.Resize, null, data),
+      sendEvent(RootEvents.Resize, (value, useIt) => this.#setSize(value, useIt), data, 'resize'),
+    );
+
+    ipcRenderer.on(this.#AppEvents.Resized, (_event, data) =>
+      sendEvent(RootEvents.Resized, (value, useIt) => this.#setSize(value, useIt), data, 'resize'),
+    );
+
+    ipcRenderer.on(this.#AppEvents.WillResize, (_event, data) =>
+      sendEvent(
+        RootEvents.WillResize,
+        (value, useIt) => this.#setSize(value, useIt),
+        data,
+        'resize',
+      ),
     );
 
     // Proxy
@@ -1219,52 +1347,69 @@ class TinyElectronClient {
 
     // App Status
     ipcRenderer.on(this.#AppEvents.ShowApp, (_event, data) =>
-      sendEvent(RootEvents.ShowApp, (value) => this.#setShowStatus(value), data),
+      sendEvent(RootEvents.ShowApp, (value, useIt) => this.#setShowStatus(value, useIt), data),
+    );
+
+    // Move
+    ipcRenderer.on(this.#AppEvents.WindowMove, (_event, arg) =>
+      sendEvent(RootEvents.WindowMove, (value, useIt) => this.#setPosition(value, useIt), arg),
     );
 
     // Maximize
     ipcRenderer.on(this.#AppEvents.WindowIsMaximized, (_event, arg) =>
-      sendEvent(RootEvents.IsMaximized, (value) => this.#setIsMaximized(value), arg),
+      sendEvent(RootEvents.IsMaximized, (value, useIt) => this.#setIsMaximized(value, useIt), arg),
     );
 
     // Focus
     ipcRenderer.on(this.#AppEvents.WindowIsFocused, (_event, arg) =>
-      sendEvent(RootEvents.IsFocused, (value) => this.#setIsFocused(value), arg),
+      sendEvent(RootEvents.IsFocused, (value, useIt) => this.#setIsFocused(value, useIt), arg),
     );
 
     // Visible
     ipcRenderer.on(this.#AppEvents.WindowIsVisible, (_event, arg) =>
-      sendEvent(RootEvents.IsVisible, (value) => this.#setIsVisible(value), arg),
+      sendEvent(RootEvents.IsVisible, (value, useIt) => this.#setIsVisible(value, useIt), arg),
     );
 
     // Full Screen
     ipcRenderer.on(this.#AppEvents.WindowIsFullScreen, (_event, arg) =>
-      sendEvent(RootEvents.IsFullScreen, (value) => this.#setIsFullScreen(value), arg),
+      sendEvent(
+        RootEvents.IsFullScreen,
+        (value, useIt) => this.#setIsFullScreen(value, useIt),
+        arg,
+      ),
     );
 
     // Ping
     ipcRenderer.on(this.#AppEvents.Ping, (_event, arg) =>
-      sendEvent(RootEvents.Ping, (value) => this.#firstPing(value), arg),
+      sendEvent(RootEvents.Ping, (value, useIt) => this.#firstPing(value, useIt), arg),
     );
 
     // Is Maximizable
     ipcRenderer.on(this.#AppEvents.WindowIsMaximizable, (_event, arg) =>
-      sendEvent(RootEvents.IsMaximizable, (value) => this.#setIsMaximizable(value), arg),
+      sendEvent(
+        RootEvents.IsMaximizable,
+        (value, useIt) => this.#setIsMaximizable(value, useIt),
+        arg,
+      ),
     );
 
     // Is Closable
     ipcRenderer.on(this.#AppEvents.WindowIsClosable, (_event, arg) =>
-      sendEvent(RootEvents.IsClosable, (value) => this.#setIsClosable(value), arg),
+      sendEvent(RootEvents.IsClosable, (value, useIt) => this.#setIsClosable(value, useIt), arg),
     );
 
     // Is FullScreenable
     ipcRenderer.on(this.#AppEvents.WindowIsFullScreenable, (_event, arg) =>
-      sendEvent(RootEvents.IsFullScreenable, (value) => this.#setIsFullScreenable(value), arg),
+      sendEvent(
+        RootEvents.IsFullScreenable,
+        (value, useIt) => this.#setIsFullScreenable(value, useIt),
+        arg,
+      ),
     );
 
     // Is Focusable
     ipcRenderer.on(this.#AppEvents.WindowIsFocusable, (_event, arg) =>
-      sendEvent(RootEvents.IsFocusable, (value) => this.#setIsFocusable(value), arg),
+      sendEvent(RootEvents.IsFocusable, (value, useIt) => this.#setIsFocusable(value, useIt), arg),
     );
 
     const getConfig = this.#ipcRequest.send(this.#AppEvents.GetWindowData);
@@ -1273,19 +1418,41 @@ class TinyElectronClient {
       else resolve(null);
     });
 
-    /** @type {Record<string, boolean|null>} */
     const windowFirstConfig = {
+      /** @type {Bounds|null} */
+      bounds: null,
+      /** @type {boolean|null} */
       isFullScreen: null,
+      /** @type {boolean|null} */
       isFocused: null,
+      /** @type {boolean|null} */
       isMaximized: null,
+      /** @type {boolean|null} */
       isMaximizable: null,
+      /** @type {boolean|null} */
       isClosable: null,
+      /** @type {boolean|null} */
       isFullScreenable: null,
+      /** @type {boolean|null} */
       isFocusable: null,
     };
 
     getConfig.then(
       /** @param {WindowDataResult} data */ (data) => {
+        if (
+          isJsonObject(data.bounds) &&
+          typeof data.bounds.x === 'number' &&
+          typeof data.bounds.x === 'number' &&
+          typeof data.bounds.height === 'number' &&
+          typeof data.bounds.width === 'number'
+        )
+          windowFirstConfig.bounds = {
+            height: data.bounds.height,
+            width: data.bounds.width,
+            x: data.bounds.x,
+            y: data.bounds.y,
+          };
+
         if (typeof data.isFocused === 'boolean') windowFirstConfig.isFocused = data.isFocused;
         if (typeof data.isFullScreen === 'boolean')
           windowFirstConfig.isFullScreen = data.isFullScreen;
@@ -1308,44 +1475,49 @@ class TinyElectronClient {
         entries.length > 0 && typeof entries[0].type === 'string' ? entries[0].type : null;
 
       // Fix values
+      if (this.getChangeCount('isFocused') < 1 && isJsonObject(windowFirstConfig.bounds)) {
+        this.#setPosition([windowFirstConfig.bounds.x, windowFirstConfig.bounds.y], true);
+        this.#setSize([windowFirstConfig.bounds.width, windowFirstConfig.bounds.height], true);
+      }
+
       if (this.getChangeCount('isFocused') < 1 && typeof windowFirstConfig.isFocused === 'boolean')
-        this.#setIsFocused(windowFirstConfig.isFocused);
+        this.#setIsFocused(windowFirstConfig.isFocused, true);
 
       if (
         this.getChangeCount('isFullScreen') < 1 &&
         typeof windowFirstConfig.isFullScreen === 'boolean'
       )
-        this.#setIsFullScreen(windowFirstConfig.isFullScreen);
+        this.#setIsFullScreen(windowFirstConfig.isFullScreen, true);
 
       if (
         this.getChangeCount('isMaximized') < 1 &&
         typeof windowFirstConfig.isMaximized === 'boolean'
       )
-        this.#setIsMaximized(windowFirstConfig.isMaximized);
+        this.#setIsMaximized(windowFirstConfig.isMaximized, true);
 
       if (
         this.getChangeCount('isMaximizable') < 1 &&
         typeof windowFirstConfig.isMaximizable === 'boolean'
       )
-        this.#setIsMaximizable(windowFirstConfig.isMaximizable);
+        this.#setIsMaximizable(windowFirstConfig.isMaximizable, true);
 
       if (
         this.getChangeCount('isClosable') < 1 &&
         typeof windowFirstConfig.isClosable === 'boolean'
       )
-        this.#setIsClosable(windowFirstConfig.isClosable);
+        this.#setIsClosable(windowFirstConfig.isClosable, true);
 
       if (
         this.getChangeCount('isFullScreenable') < 1 &&
         typeof windowFirstConfig.isFullScreenable === 'boolean'
       )
-        this.#setIsFullScreenable(windowFirstConfig.isFullScreenable);
+        this.#setIsFullScreenable(windowFirstConfig.isFullScreenable, true);
 
       if (
         this.getChangeCount('isFocusable') < 1 &&
         typeof windowFirstConfig.isFocusable === 'boolean'
       )
-        this.#setIsFocusable(windowFirstConfig.isFocusable);
+        this.#setIsFocusable(windowFirstConfig.isFocusable, true);
 
       // Start now
       ipcRenderer.send(this.#AppEvents.DOMContentLoaded, { type, ...windowFirstConfig });

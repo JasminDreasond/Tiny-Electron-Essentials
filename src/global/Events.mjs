@@ -46,6 +46,9 @@
  * @property {string} SetWindowIsFocusable      - Updates the focusable state of the window.
  * @property {string} SetWindowIsFullScreenable - Updates the fullscreenable state of the window.
  * @property {string} GetWindowData             - Requests the current window state and capabilities.
+ * @property {string} WindowMove                - Moves the window to a specified position on the screen.
+ * @property {string} Resized                   - Fired after the window has been resized.
+ * @property {string} WillResize                - Fired right before the window starts being resized.
  */
 
 export const AppEvents = {
@@ -76,6 +79,7 @@ export const AppEvents = {
   ChangeAppIcon: 'change-app-icon',
   ChangeTrayIcon: 'change-tray-icon',
   ConsoleMessage: 'console-message',
+  WindowMove: 'window-move',
   ElectronCacheValues: 'electron-cache-values',
   Ping: 'ping',
   DOMContentLoaded: 'DOMContentLoaded',
@@ -89,6 +93,8 @@ export const AppEvents = {
   SetWindowIsFocusable: 'set-window-is-focusable',
   SetWindowIsFullScreenable: 'set-window-is-fullscreenable',
   Resize: 'resize',
+  Resized: 'resized',
+  WillResize: 'will-resize',
   ShowApp: 'tiny-app-is-show',
 };
 
@@ -115,6 +121,9 @@ export const AppEvents = {
  * @property {string} IsMaximizable      - Emitted when the maximizable state of the window changes.
  * @property {string} IsClosable         - Emitted when the closable state of the window changes.
  * @property {string} IsFocusable        - Emitted when the focusable state of the window changes.
+ * @property {string} Resized            - Emitted after the window resizing process completes.
+ * @property {string} WillResize         - Emitted before the window starts resizing.
+ * @property {string} WindowMove         - Emitted when the window is moved to a different screen position.
  */
 
 export const RootEvents = {
@@ -123,11 +132,13 @@ export const RootEvents = {
   IsClosable: 'IsClosable',
   IsFocusable: 'IsFocusable',
   IsMaximized: 'isMaximized',
-  IsFocused: 'isFocused',
-  IsVisible: 'isVisible',
-  SetProxyError: 'setProxyError',
-  SetProxy: 'setProxy',
-  Resize: 'resize',
+  IsFocused: 'IsFocused',
+  IsVisible: 'IsVisible',
+  SetProxyError: 'SetProxyError',
+  SetProxy: 'SetProxy',
+  Resize: 'Resize',
+  Resized: 'Resized',
+  WillResize: 'WillResize',
   IsFullScreen: 'IsFullScreen',
   Ping: 'Ping',
   Ready: 'Ready',
@@ -135,6 +146,7 @@ export const RootEvents = {
   ReadyToShow: 'ReadyToShow',
   DOMContentLoaded: 'DOMContentLoaded',
   ShowApp: 'ShowApp',
+  WindowMove: 'WindowMove',
 };
 
 /**
