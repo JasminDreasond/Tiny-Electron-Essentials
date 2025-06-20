@@ -1,3 +1,4 @@
+import { isJsonObject } from 'tiny-essentials';
 import {
   getDefaultWindowFrameRoot,
   getDefaultWindowFrameStyle,
@@ -8,21 +9,22 @@ import { moveBodyContentTo } from '../global/Utils.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
 
 class TinyWindowFrameManager {
-  #windowRoot = 'window-root';
-  #minimizeIcon = '🗕';
-  #maximizeIcon = '🗖';
-  #unmaximizeIcon = '🗗';
-  #closeIcon = '🗙';
+  #windowRoot = '';
+  #minimizeIcon = '';
+  #maximizeIcon = '';
+  #unmaximizeIcon = '';
+  #closeIcon = '';
 
-  #blurClass = 'electron-blur';
-  #focusClass = 'electron-focus';
-  #fullscreenClass = 'electron-fullscreen';
-  #maximizedClass = 'electron-maximized';
+  #blurClass = '';
+  #focusClass = '';
+  #fullscreenClass = '';
+  #maximizedClass = '';
 
   #options = {
-    buttonsPosition: 'right',
-    titlePosition: 'center',
-    buttonsMap: ['minimize', 'maximize', 'close'],
+    buttonsPosition: '',
+    titlePosition: '',
+    /** @type {string[]} */
+    buttonsMap: [],
   };
 
   /** @type {TinyElectronClient} */
@@ -75,7 +77,7 @@ class TinyWindowFrameManager {
 
   /**
    * Creates an instance of the custom window frame with a draggable title bar,
-   * customizable buttons, and dynamic styling that integrates with Electron.
+   * customizable buttons, class names, icons, and dynamic styling that integrates with Electron.
    *
    * @param {Object} [options] - Configuration options for the window frame.
    * @param {boolean} [options.applyDefaultStyles=true] - If true, applies the default CSS styles automatically.
@@ -83,9 +85,17 @@ class TinyWindowFrameManager {
    * @param {'left'|'center'|'right'} [options.titlePosition='center'] - Defines the position of the window title in the top bar.
    * @param {string[]} [options.buttonsMap=['minimize', 'maximize', 'close']] - Determines which buttons appear and their order. Valid values are 'minimize', 'maximize', and 'close'.
    * @param {TinyElectronClient} [options.client] - The Electron client interface that handles window events like minimize, maximize, close, and focus.
-   * @throws {TypeError} If any option has an invalid type.
-   * @throws {Error} If buttonsMap contains invalid button names.
-   * @throws {Error} If client is not a valid TinyElectronClient instance.
+   * @param {string} [options.windowRoot='window-root'] - The ID for the root container.
+   * @param {Object} [options.icons] - Custom icons for buttons.
+   * @param {string} [options.icons.minimize='🗕']
+   * @param {string} [options.icons.maximize='🗖']
+   * @param {string} [options.icons.unmaximize='🗗']
+   * @param {string} [options.icons.close='🗙']
+   * @param {Object} [options.classes] - Custom class names for window states.
+   * @param {string} [options.classes.blur='electron-blur']
+   * @param {string} [options.classes.focus='electron-focus']
+   * @param {string} [options.classes.fullscreen='electron-fullscreen']
+   * @param {string} [options.classes.maximized='electron-maximized']
    */
   constructor({
     applyDefaultStyles = true,
@@ -93,6 +103,22 @@ class TinyWindowFrameManager {
     titlePosition = 'center',
     buttonsMap = ['minimize', 'maximize', 'close'],
     client,
+
+    windowRoot = 'window-root',
+
+    icons = {
+      minimize: '🗕',
+      maximize: '🗖',
+      unmaximize: '🗗',
+      close: '🗙',
+    },
+
+    classes = {
+      blur: 'electron-blur',
+      focus: 'electron-focus',
+      fullscreen: 'electron-fullscreen',
+      maximized: 'electron-maximized',
+    },
   } = {}) {
     // Validate client
     if (!(client instanceof TinyElectronClient))
@@ -121,6 +147,47 @@ class TinyWindowFrameManager {
           buttonsMap,
         )}`,
       );
+
+    if (typeof windowRoot !== 'string' || !windowRoot.trim())
+      throw new Error('windowRoot must be a non-empty string.');
+
+    if (!isJsonObject(icons)) throw new Error('icons must be a object.');
+    const requiredIcons = ['minimize', 'maximize', 'unmaximize', 'close'];
+    requiredIcons.forEach((key) => {
+      // @ts-ignore
+      if (typeof icons[key] !== 'string' || !icons[key].trim()) {
+        throw new Error(`Icon "${key}" must be a non-empty string.`);
+      }
+    });
+
+    if (!isJsonObject(classes)) throw new Error('classes must be a object.');
+    const requiredClasses = ['blur', 'focus', 'fullscreen', 'maximized'];
+    requiredClasses.forEach((key) => {
+      // @ts-ignore
+      if (typeof classes[key] !== 'string' || !classes[key].trim()) {
+        throw new Error(`Class "${key}" must be a non-empty string.`);
+      }
+    });
+
+    this.#windowRoot = windowRoot;
+
+    // @ts-ignore
+    this.#minimizeIcon = icons.minimize;
+    // @ts-ignore
+    this.#maximizeIcon = icons.maximize;
+    // @ts-ignore
+    this.#unmaximizeIcon = icons.unmaximize;
+    // @ts-ignore
+    this.#closeIcon = icons.close;
+
+    // @ts-ignore
+    this.#blurClass = classes.blur;
+    // @ts-ignore
+    this.#focusClass = classes.focus;
+    // @ts-ignore
+    this.#fullscreenClass = classes.fullscreen;
+    // @ts-ignore
+    this.#maximizedClass = classes.maximized;
 
     this.#options.buttonsPosition = buttonsPosition;
     this.#options.titlePosition = titlePosition;
