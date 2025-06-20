@@ -32,6 +32,18 @@ import TinyIpcResponder from './TinyIpcResponder.mjs';
  * @property {boolean} [minimizeOnClose] - Overrides the default behavior to minimize the window instead of closing it. Falls back to `this.getMinimizeOnClose()` if not provided.
  */
 
+/**
+ * Manages the root context of the Electron application.
+ *
+ * This class acts as the central manager for window instances,
+ * IPC handlers, and global application state. It coordinates
+ * the lifecycle of windows, IPC responders, and shared resources.
+ *
+ * Typically used in the main process to bootstrap and manage the
+ * core behavior of the entire Electron application.
+ *
+ * @class
+ */
 class TinyElectronRoot {
   #AppEvents = AppEvents;
   #winFile = new TinyWindowFile();

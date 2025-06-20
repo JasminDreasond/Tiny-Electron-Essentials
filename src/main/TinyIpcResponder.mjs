@@ -19,6 +19,18 @@ import { serializeError } from '../global/Utils.mjs';
  * A handler function used to process incoming IPC requests on the main process.
  */
 
+/**
+ * Manages IPC responses for incoming requests in Electron.
+ *
+ * This class listens for IPC requests and provides handlers to respond
+ * with data or errors. It enables structured, reliable communication
+ * from the main process or between renderer processes.
+ *
+ * Typically used to expose APIs from the main process to renderer processes
+ * with clear request/response patterns.
+ *
+ * @class
+ */
 class TinyIpcResponder {
   /** @typedef {import('electron').IpcMainEvent} IpcMainEvent */
 

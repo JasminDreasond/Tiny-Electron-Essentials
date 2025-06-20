@@ -11,6 +11,18 @@ import { isJsonObject } from 'tiny-essentials';
  * Configuration used to initialize a window, including size and state.
  */
 
+/**
+ * Provides file operations scoped to a window instance.
+ *
+ * This class handles reading, writing, and managing files related
+ * to the context of a specific Electron window. Useful for storing
+ * window-specific configuration, cache, or temporary data.
+ *
+ * Ensures that file operations are organized per window instance
+ * and isolated from global application files.
+ *
+ * @class
+ */
 class TinyWindowFile {
   /** @type {Record<string, Bounds>} */
   #bounds = {};

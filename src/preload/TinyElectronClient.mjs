@@ -202,6 +202,24 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * @property {(config: Electron.ProxyConfig) => Promise<void>} setProxy
  */
 
+/**
+ * Manages the state and communication of a single Electron window instance.
+ *
+ * This class handles window state tracking, including focus, visibility,
+ * fullscreen, and maximized states. It also manages cached data, window data,
+ * and the application show status. TinyElectronClient is designed to be used
+ * in Electron applications that require precise tracking of window status
+ * and reliable data synchronization between processes.
+ *
+ * Typical usage includes listening for window events, managing UI state,
+ * and handling first-time connections or pings from the window.
+ *
+ * Example usage:
+ * const client = new TinyElectronClient();
+ * client.isVisible(); // Returns true if the window is visible
+ *
+ * @class
+ */
 class TinyElectronClient {
   /** @typedef {import('./LoadingHtml.mjs').GetLoadingHtml} GetLoadingHtml */
 

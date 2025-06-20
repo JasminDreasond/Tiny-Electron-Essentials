@@ -25,6 +25,19 @@ import { deserializeError } from '../global/Utils.mjs';
  * @property {Error|null} error - An Error if the request failed, or null if it succeeded.
  */
 
+/**
+ * Manages outgoing IPC requests with response handling for Electron.
+ *
+ * This class provides a request/response mechanism over Electron's IPC,
+ * allowing you to send messages to the main process and await replies
+ * with automatic promise-based handling. It manages timeouts, request IDs,
+ * and error handling for reliable communication.
+ *
+ * Commonly used when the renderer process needs to request data or actions
+ * from the main process.
+ *
+ * @class
+ */
 class TinyIpcRequestManager {
   /** @typedef {import('electron').IpcMainEvent} IpcMainEvent */
 
