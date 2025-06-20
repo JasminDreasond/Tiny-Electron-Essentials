@@ -111,10 +111,10 @@ export const AppEvents = {
  * @property {string} ReadyToShow        - Emitted when the window is fully initialized and ready to be displayed, but not yet shown.
  * @property {string} DOMContentLoaded   - Emitted when the renderer process completes loading the DOM content.
  * @property {string} ShowApp            - Emitted when the application window is actually shown to the user after being ready.
- * @property {string} IsFullScreenable - Emitted when the fullscreenable state of the window changes.
- * @property {string} IsMaximizable - Emitted when the maximizable state of the window changes.
- * @property {string} IsClosable - Emitted when the closable state of the window changes.
- * @property {string} IsFocusable - Emitted when the focusable state of the window changes.
+ * @property {string} IsFullScreenable   - Emitted when the fullscreenable state of the window changes.
+ * @property {string} IsMaximizable      - Emitted when the maximizable state of the window changes.
+ * @property {string} IsClosable         - Emitted when the closable state of the window changes.
+ * @property {string} IsFocusable        - Emitted when the focusable state of the window changes.
  */
 
 export const RootEvents = {
@@ -140,13 +140,13 @@ export const RootEvents = {
 /**
  * @typedef {Object} NotificationEvents
  * @property {string} Create - Event triggered when a new notification is created.
- * @property {string} Show - Event triggered when a notification is shown to the user.
- * @property {string} All - Event triggered for any notification-related activity.
- * @property {string} Click - Event triggered when the user clicks on a notification.
- * @property {string} Reply - Event triggered when the user replies to a notification (if supported).
+ * @property {string} Show   - Event triggered when a notification is shown to the user.
+ * @property {string} All    - Event triggered for any notification-related activity.
+ * @property {string} Click  - Event triggered when the user clicks on a notification.
+ * @property {string} Reply  - Event triggered when the user replies to a notification (if supported).
  * @property {string} Action - Event triggered when the user interacts with an action button in the notification.
  * @property {string} Failed - Event triggered when showing or creating a notification fails.
- * @property {string} Close - Event triggered when a notification is closed or dismissed.
+ * @property {string} Close  - Event triggered when a notification is closed or dismissed.
  */
 
 export const NotificationEvents = {
