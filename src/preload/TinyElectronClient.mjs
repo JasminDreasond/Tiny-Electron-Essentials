@@ -16,21 +16,29 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  */
 
 /**
+ * Represents the rectangular bounds of a window on the screen.
+ *
  * @typedef {Object} Bounds
- * @property {number} x
- * @property {number} y
- * @property {number} height
- * @property {number} width
+ * @property {number} x - The horizontal position of the window (distance from the left of the screen).
+ * @property {number} y - The vertical position of the window (distance from the top of the screen).
+ * @property {number} width - The width of the window in pixels.
+ * @property {number} height - The height of the window in pixels.
  */
 
 /**
- * x|y
+ * A tuple representing a 2D position in pixels.
+ *
  * @typedef {number[]} Position
+ * @property {number} 0 - The horizontal position (x).
+ * @property {number} 1 - The vertical position (y).
  */
 
 /**
- * width|height
+ * A tuple representing the size of a window in pixels.
+ *
  * @typedef {number[]} Size
+ * @property {number} 0 - The width.
+ * @property {number} 1 - The height.
  */
 
 /**
