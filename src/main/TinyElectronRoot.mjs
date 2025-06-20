@@ -381,6 +381,22 @@ class TinyElectronRoot {
       return null;
     };
 
+    this.#ipcResponder.on(this.#AppEvents.GetWindowData, (event, value, res) => {
+      const win = this.#getWin(event);
+      const instance = getWinInstance(event);
+      if (win && instance)
+        res({
+          isFullScreenable: instance.isFullScreenable(),
+          isMaximizable: instance.isMaximizable(),
+          isClosable: instance.isClosable(),
+          isFocusable: instance.isFocusable(),
+          isFullScreen: win.isFullScreen(),
+          isFocused: win.isFocused(),
+          isMaximized: win.isMaximized(),
+        });
+      res(null);
+    });
+
     this.#ipcResponder.on(this.#AppEvents.OpenDevTools, (event, value, res) => {
       const win = this.#getWin(event);
       if (win) this.openDevTools(win, value);
@@ -467,6 +483,31 @@ class TinyElectronRoot {
     ipcMain.on(this.#AppEvents.DOMContentLoaded, (event, data) => {
       const win = getWinInstance(event);
       if (win) this.#emit(RootEvents.DOMContentLoaded, win, data);
+    });
+
+    // Win configs
+    this.#ipcResponder.on(this.#AppEvents.SetWindowIsMaximizable, (event, data, res) => {
+      const win = getWinInstance(event);
+      if (win) res(win.setMaximizable(data));
+      else res(null);
+    });
+
+    this.#ipcResponder.on(this.#AppEvents.SetWindowIsClosable, (event, data, res) => {
+      const win = getWinInstance(event);
+      if (win) res(win.setClosable(data));
+      else res(null);
+    });
+
+    this.#ipcResponder.on(this.#AppEvents.SetWindowIsFocusable, (event, data, res) => {
+      const win = getWinInstance(event);
+      if (win) res(win.setFocusable(data));
+      else res(null);
+    });
+
+    this.#ipcResponder.on(this.#AppEvents.SetWindowIsFullScreenable, (event, data, res) => {
+      const win = getWinInstance(event);
+      if (win) res(win.setFullScreenable(data));
+      else res(null);
     });
 
     // Set proxy

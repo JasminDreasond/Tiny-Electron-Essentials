@@ -260,6 +260,11 @@ class TinyWinInstance {
   #visible = false;
   #ready = false;
 
+  #isFullScreenable = true;
+  #isMaximizable = true;
+  #isClosable = true;
+  #isFocusable = true;
+
   /** @type {string|number|null} */
   #index = null;
 
@@ -286,6 +291,126 @@ class TinyWinInstance {
    * @type {LoadPath}
    */
   #loadPath;
+
+  /**
+   * Returns whether the window is currently maximizable.
+   *
+   * @returns {boolean} True if the window can be maximized; otherwise, false.
+   */
+  isMaximizable() {
+    const result = this.#win.isMaximizable();
+    this.#setMaximizable(result);
+    return this.#isMaximizable;
+  }
+
+  /**
+   * Returns whether the window is currently closable.
+   *
+   * @returns {boolean} True if the window can be closed; otherwise, false.
+   */
+  isClosable() {
+    const result = this.#win.isClosable();
+    this.#setClosable(result);
+    return this.#isClosable;
+  }
+
+  /**
+   * Returns whether the window is currently fullscreenable.
+   *
+   * @returns {boolean} True if the window can enter fullscreen; otherwise, false.
+   */
+  isFullScreenable() {
+    const result = this.#win.isFullScreenable();
+    this.#setFullScreenable(result);
+    return this.#isFullScreenable;
+  }
+
+  /**
+   * Returns whether the window is currently focusable.
+   *
+   * @returns {boolean} True if the window can be focused; otherwise, false.
+   */
+  isFocusable() {
+    const result = this.#win.isFocusable();
+    this.#setFocusable(result);
+    return this.#isFocusable;
+  }
+
+  /**
+   * Updates the internal maximizable state.
+   *
+   * @param {boolean} value - True to make the window maximizable, false otherwise.
+   * @throws {TypeError} If the value is not a boolean.
+   */
+  #setMaximizable(value) {
+    if (typeof value !== 'boolean') throw new TypeError('The "value" argument must be a boolean.');
+    const oldValue = this.#isMaximizable;
+    if (oldValue === value) return;
+    this.#isMaximizable = value;
+    this.#win.webContents.send(this.#AppEvents.WindowIsMaximizable, {
+      value,
+      time: Date.now(),
+    });
+    this.#emit(this.#AppEvents.WindowIsMaximizable, value);
+    this.#primaryEmit(this.#AppEvents.WindowIsMaximizable, this.#index, value);
+  }
+
+  /**
+   * Updates the internal closable state.
+   *
+   * @param {boolean} value - True to make the window closable, false otherwise.
+   * @throws {TypeError} If the value is not a boolean.
+   */
+  #setClosable(value) {
+    if (typeof value !== 'boolean') throw new TypeError('The "value" argument must be a boolean.');
+    const oldValue = this.#isClosable;
+    if (oldValue === value) return;
+    this.#isClosable = value;
+    this.#win.webContents.send(this.#AppEvents.WindowIsClosable, {
+      value,
+      time: Date.now(),
+    });
+    this.#emit(this.#AppEvents.WindowIsClosable, value);
+    this.#primaryEmit(this.#AppEvents.WindowIsClosable, this.#index, value);
+  }
+
+  /**
+   * Updates the internal fullscreenable state.
+   *
+   * @param {boolean} value - True to allow fullscreen, false otherwise.
+   * @throws {TypeError} If the value is not a boolean.
+   */
+  #setFullScreenable(value) {
+    if (typeof value !== 'boolean') throw new TypeError('The "value" argument must be a boolean.');
+    const oldValue = this.#isFullScreenable;
+    if (oldValue === value) return;
+    this.#isFullScreenable = value;
+    this.#win.webContents.send(this.#AppEvents.WindowIsFullScreenable, {
+      value,
+      time: Date.now(),
+    });
+    this.#emit(this.#AppEvents.WindowIsFullScreenable, value);
+    this.#primaryEmit(this.#AppEvents.WindowIsFullScreenable, this.#index, value);
+  }
+
+  /**
+   * Updates the internal focusable state.
+   *
+   * @param {boolean} value - True to make the window focusable, false otherwise.
+   * @throws {TypeError} If the value is not a boolean.
+   */
+  #setFocusable(value) {
+    if (typeof value !== 'boolean') throw new TypeError('The "value" argument must be a boolean.');
+    const oldValue = this.#isFocusable;
+    if (oldValue === value) return;
+    this.#isFocusable = value;
+    this.#win.webContents.send(this.#AppEvents.WindowIsFocusable, {
+      value,
+      time: Date.now(),
+    });
+    this.#emit(this.#AppEvents.WindowIsFocusable, value);
+    this.#primaryEmit(this.#AppEvents.WindowIsFocusable, this.#index, value);
+  }
 
   /**
    * Returns the window index assigned to this instance.
@@ -333,6 +458,66 @@ class TinyWinInstance {
   openDevTools(ops) {
     this.#checkDestroy();
     return this.#openDevTools(this.#win, ops);
+  }
+
+  /**
+   * Sets whether the window can be maximized.
+   * Sends an event to the renderer with the updated state.
+   *
+   * @param {boolean} value - If true, the window becomes maximizable; otherwise, it cannot be maximized.
+   * @returns {boolean} - Edit result.
+   */
+  setMaximizable(value) {
+    this.#checkDestroy();
+    this.#win.setMaximizable(value);
+    const result = this.#win.isMaximizable();
+    this.#setMaximizable(result);
+    return result;
+  }
+
+  /**
+   * Sets whether the window can be closed.
+   * Sends an event to the renderer with the updated state.
+   *
+   * @param {boolean} value - If true, the window can be closed; otherwise, it cannot be closed.
+   * @returns {boolean} - Edit result.
+   */
+  setClosable(value) {
+    this.#checkDestroy();
+    this.#win.setClosable(value);
+    const result = this.#win.isClosable();
+    this.#setClosable(result);
+    return result;
+  }
+
+  /**
+   * Sets whether the window can be focused.
+   * Sends an event to the renderer with the updated state.
+   *
+   * @param {boolean} value - If true, the window can be focused; otherwise, it cannot receive focus.
+   * @returns {boolean} - Edit result.
+   */
+  setFocusable(value) {
+    this.#checkDestroy();
+    this.#win.setFocusable(value);
+    const result = this.#win.isFocusable();
+    this.#setFocusable(result);
+    return result;
+  }
+
+  /**
+   * Sets whether the window can enter fullscreen mode.
+   * Sends an event to the renderer with the updated state.
+   *
+   * @param {boolean} value - If true, the window can enter fullscreen mode; otherwise, it cannot receive focus.
+   * @returns {boolean} - Edit result.
+   */
+  setFullScreenable(value) {
+    this.#checkDestroy();
+    this.#win.setFullScreenable(value);
+    const result = this.#win.isFullScreenable();
+    this.#setFullScreenable(result);
+    return result;
   }
 
   /**

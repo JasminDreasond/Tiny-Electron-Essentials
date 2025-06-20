@@ -5,38 +5,47 @@
  * that IPC communication is standardized and centralized to avoid naming inconsistencies.
  *
  * @typedef {Object} AppEvents
- * @property {string} OpenDevTools        - Opens the developer tools in the application window.
- * @property {string} SetTitle            - Sets the title of the application window.
- * @property {string} FocusWindow         - Brings the application window to the foreground.
- * @property {string} BlurWindow          - Removes focus from the application window.
- * @property {string} ShowWindow          - Makes the application window visible if hidden.
- * @property {string} ForceFocusWindow    - Forces the application window to gain focus, even if not focused normally.
- * @property {string} SystemIdleTime      - Requests the amount of time (in ms) the system has been idle.
- * @property {string} SystemIdleState     - Requests the current idle state of the system (active, idle, locked, etc.).
- * @property {string} ToggleVisible       - Toggles visibility of the application window.
- * @property {string} AppQuit             - Quits the application gracefully.
- * @property {string} SetProxy            - Sets a custom network proxy for the application.
- * @property {string} SetProxyError       - Triggered when setting the proxy fails.
- * @property {string} WindowIsMaximized   - Asks whether the window is currently maximized.
- * @property {string} WindowMaximize      - Maximizes the application window.
- * @property {string} WindowUnmaximize    - Restores the window from maximized to normal size.
- * @property {string} WindowMinimize      - Minimizes the application window to the taskbar or dock.
- * @property {string} WindowIsFocused     - Returns whether the application window is currently focused.
- * @property {string} WindowIsVisible     - Returns whether the application window is currently visible.
- * @property {string} WindowIsFullScreen  - Returns whether the application window is currently in fullscreen mode.
- * @property {string} ReadyToShow         - Notifies that the window has completed initialization and is ready to be displayed.
- * @property {string} WindowHide          - Hides the application window from view.
- * @property {string} WindowShow          - Shows the application window if hidden.
- * @property {string} WindowClose         - Closes the application window.
- * @property {string} WindowClose         - Destroy the application window.
- * @property {string} ChangeAppIcon       - Changes the icon of the application window dynamically.
- * @property {string} ChangeTrayIcon      - Changes the system tray icon of the application dynamically.
- * @property {string} ConsoleMessage      - Sends a message to be printed in the renderer process console for debugging purposes.
- * @property {string} ElectronCacheValues - Requests or responds with cached Electron-related values (e.g., user agent, versions, etc.).
- * @property {string} Ping                - Sends a ping signal to check the connectivity or liveness of the IPC channel.
- * @property {string} DOMContentLoaded    - Fired when the renderer has loaded the DOM content completely.
- * @property {string} Resize              - Resizes the application window to the specified width and height.
- * @property {string} ShowApp             - Brings the entire application to the foreground, typically from the system tray or background.
+ * @property {string} OpenDevTools              - Opens the developer tools in the application window.
+ * @property {string} SetTitle                  - Sets the title of the application window.
+ * @property {string} FocusWindow               - Brings the application window to the foreground.
+ * @property {string} BlurWindow                - Removes focus from the application window.
+ * @property {string} ShowWindow                - Makes the application window visible if hidden.
+ * @property {string} ForceFocusWindow          - Forces the application window to gain focus, even if not focused normally.
+ * @property {string} SystemIdleTime            - Requests the amount of time (in ms) the system has been idle.
+ * @property {string} SystemIdleState           - Requests the current idle state of the system (active, idle, locked, etc.).
+ * @property {string} ToggleVisible             - Toggles visibility of the application window.
+ * @property {string} AppQuit                   - Quits the application gracefully.
+ * @property {string} SetProxy                  - Sets a custom network proxy for the application.
+ * @property {string} SetProxyError             - Triggered when setting the proxy fails.
+ * @property {string} WindowIsMaximized         - Asks whether the window is currently maximized.
+ * @property {string} WindowMaximize            - Maximizes the application window.
+ * @property {string} WindowUnmaximize          - Restores the window from maximized to normal size.
+ * @property {string} WindowMinimize            - Minimizes the application window to the taskbar or dock.
+ * @property {string} WindowIsFocused           - Returns whether the application window is currently focused.
+ * @property {string} WindowIsVisible           - Returns whether the application window is currently visible.
+ * @property {string} WindowIsFullScreen        - Returns whether the application window is currently in fullscreen mode.
+ * @property {string} ReadyToShow               - Notifies that the window has completed initialization and is ready to be displayed.
+ * @property {string} WindowHide                - Hides the application window from view.
+ * @property {string} WindowShow                - Shows the application window if hidden.
+ * @property {string} WindowClose               - Closes the application window.
+ * @property {string} WindowDestroy             - Destroys the application window instance entirely.
+ * @property {string} ChangeAppIcon             - Changes the icon of the application window dynamically.
+ * @property {string} ChangeTrayIcon            - Changes the system tray icon of the application dynamically.
+ * @property {string} ConsoleMessage            - Sends a message to be printed in the renderer process console for debugging purposes.
+ * @property {string} ElectronCacheValues       - Requests or responds with cached Electron-related values (e.g., user agent, versions, etc.).
+ * @property {string} Ping                      - Sends a ping signal to check the connectivity or liveness of the IPC channel.
+ * @property {string} DOMContentLoaded          - Fired when the renderer has loaded the DOM content completely.
+ * @property {string} Resize                    - Resizes the application window to the specified width and height.
+ * @property {string} ShowApp                   - Brings the entire application to the foreground, typically from the system tray or background.
+ * @property {string} WindowIsMaximizable       - Returns whether the application window is currently maximizable.
+ * @property {string} WindowIsClosable          - Returns whether the application window is currently closable.
+ * @property {string} WindowIsFocusable         - Returns whether the application window is currently focusable.
+ * @property {string} WindowIsFullScreenable    - Returns whether the application window is currently fullscreenable.
+ * @property {string} SetWindowIsMaximizable    - Updates the maximizable state of the window.
+ * @property {string} SetWindowIsClosable       - Updates the closable state of the window.
+ * @property {string} SetWindowIsFocusable      - Updates the focusable state of the window.
+ * @property {string} SetWindowIsFullScreenable - Updates the fullscreenable state of the window.
+ * @property {string} GetWindowData             - Requests the current window state and capabilities.
  */
 
 export const AppEvents = {
@@ -70,6 +79,15 @@ export const AppEvents = {
   ElectronCacheValues: 'electron-cache-values',
   Ping: 'ping',
   DOMContentLoaded: 'DOMContentLoaded',
+  GetWindowData: 'get-window-data',
+  WindowIsMaximizable: 'window-is-maximizable',
+  WindowIsClosable: 'window-is-closable',
+  WindowIsFocusable: 'window-is-focusable',
+  WindowIsFullScreenable: 'window-is-fullScreenable',
+  SetWindowIsMaximizable: 'set-window-is-maximizable',
+  SetWindowIsClosable: 'set-window-is-closable',
+  SetWindowIsFocusable: 'set-window-is-focusable',
+  SetWindowIsFullScreenable: 'set-window-is-fullscreenable',
   Resize: 'resize',
   ShowApp: 'tiny-app-is-show',
 };
@@ -93,9 +111,17 @@ export const AppEvents = {
  * @property {string} ReadyToShow        - Emitted when the window is fully initialized and ready to be displayed, but not yet shown.
  * @property {string} DOMContentLoaded   - Emitted when the renderer process completes loading the DOM content.
  * @property {string} ShowApp            - Emitted when the application window is actually shown to the user after being ready.
+ * @property {string} IsFullScreenable - Emitted when the fullscreenable state of the window changes.
+ * @property {string} IsMaximizable - Emitted when the maximizable state of the window changes.
+ * @property {string} IsClosable - Emitted when the closable state of the window changes.
+ * @property {string} IsFocusable - Emitted when the focusable state of the window changes.
  */
 
 export const RootEvents = {
+  IsFullScreenable: 'IsFullScreenable',
+  IsMaximizable: 'IsMaximizable',
+  IsClosable: 'IsClosable',
+  IsFocusable: 'IsFocusable',
   IsMaximized: 'isMaximized',
   IsFocused: 'isFocused',
   IsVisible: 'isVisible',

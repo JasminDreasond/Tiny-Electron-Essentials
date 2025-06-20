@@ -1,5 +1,9 @@
 // @ts-nocheck
-import { getDefaultWindowFrameRoot, getDefaultWindowFrameStyle } from '../global/CssFile.mjs';
+import {
+  getDefaultWindowFrameRoot,
+  getDefaultWindowFrameStyle,
+  saveCssFile,
+} from '../global/CssFile.mjs';
 import { RootEvents } from '../global/Events.mjs';
 import { moveBodyContentTo } from '../global/Utils.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
@@ -26,7 +30,19 @@ class TinyWindowFrameManager {
   elements = {};
   styles = {};
 
+  /**
+   * Generates a formatted element name based on the given parameters.
+   *
+   * @param {string} [name=''] - The base name. If provided without leading space, a space will be prepended.
+   * @param {string} [extra=''] - Extra string appended after the window root (optional).
+   * @param {string} [extra2=''] - Extra string prepended at the beginning (optional).
+   * @returns {string} The fully formatted element name.
+   * @throws {TypeError} If any argument is not a string.
+   */
   getElementName(name = '', extra = '', extra2 = '') {
+    if (typeof name !== 'string') throw new TypeError('The "name" argument must be a string.');
+    if (typeof extra !== 'string') throw new TypeError('The "extra" argument must be a string.');
+    if (typeof extra2 !== 'string') throw new TypeError('The "extra2" argument must be a string.');
     return `${extra2.length > 0 ? `${extra2} ` : ''}#${this.#windowRoot}${extra}${name.length > 0 && name.startsWith(' ') ? name : ` ${name}`}`;
   }
 
@@ -52,6 +68,29 @@ class TinyWindowFrameManager {
 
     this.#createStructure();
     this.#applyDefaultStyles(applyDefaultStyles);
+  }
+
+  /**
+   * Save CSS content into a .css file.
+   *
+   * @param {string} directory - The folder path where the file will be saved.
+   * @param {'default'|'root'} filename - The name of the css content.
+   * @returns {Promise<void>}
+   * @throws {TypeError} If directory is not a valid non-empty string.
+   * @throws {TypeError} If filename is not 'default' or 'root'.
+   * @throws {Error} If CSS content for the given filename does not exist.
+   * @throws {Error} If the file cannot be written.
+   */
+  saveCssFileStructure(directory, filename) {
+    if (typeof directory !== 'string' || !directory.trim())
+      throw new TypeError('The "directory" argument must be a non-empty string.');
+
+    if (filename !== 'default' && filename !== 'root')
+      throw new TypeError('The "filename" argument must be either "default" or "root".');
+
+    const style = this.styles[filename];
+    if (!style || !style.textContent) throw new Error(`No CSS content found for "${filename}".`);
+    return saveCssFile(directory, `electron-${filename}.css`, style.textContent);
   }
 
   #createStructure() {

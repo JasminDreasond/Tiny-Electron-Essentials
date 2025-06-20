@@ -12,7 +12,6 @@ const client = new TinyElectronClient();
 client.installWinScript();
 client.requestCache();
 const { removeLoading } = client.installLoadingPage();
-setTimeout(removeLoading, 1000);
 
 const createRootEvent = (eventName) =>
   client.on(eventName, (value) => console.log(eventName, value));
@@ -68,6 +67,7 @@ contextBridge.exposeInMainWorld('api', {
 
 client.on(RootEvents.ReadyToShow, () => client.requestCache());
 client.on(RootEvents.Ready, () => {
+  removeLoading();
   client.requestCache();
   const win = new TinyWindowFrameManager({
     client,
