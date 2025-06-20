@@ -189,25 +189,21 @@ class TinyWindowFrameManager {
     const buildSection = (side, items) => {
       const section = side === 'left' ? topLeft : topRight;
       items.forEach((item) => {
-        if (item !== null) {
-          if (item === 'icon') section.appendChild(icon);
-          else section.appendChild(item);
-        }
+        if (item !== null) section.appendChild(item);
       });
 
       return section;
     };
 
     buildSection('left', [
-      'icon',
       this.#options.titlePosition === 'left' ? title : null,
-      buttons,
+      this.#options.buttonsPosition === 'left' ? buttons : null,
       menuLeft,
     ]);
     buildSection('right', [
       menuRight,
       this.#options.titlePosition === 'right' ? title : null,
-      buttons,
+      this.#options.buttonsPosition === 'right' ? buttons : null,
     ]);
     if (this.#options.titlePosition === 'center') topCenter.appendChild(title);
 
@@ -395,7 +391,15 @@ class TinyWindowFrameManager {
 
   /** ✅ Set or change the window icon */
   setIcon(url) {
-    this.elements.icon.style.backgroundImage = url ? `url(${url})` : '';
+    if (url.length > 0) {
+      this.elements.icon.style.backgroundImage = `url(${url})`;
+      this.elements.topLeft.prepend(this.elements.icon);
+    } else this.removeIcon();
+  }
+
+  removeIcon() {
+    this.elements.icon.remove();
+    this.elements.icon.style.backgroundImage = '';
   }
 
   /** ✅ Apply custom CSS */

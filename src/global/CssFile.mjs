@@ -50,24 +50,25 @@ export const getDefaultWindowFrameRoot = () => {
         --frame-border-size: 1px;
 
         /* Colors */
-        --frame-background: rgba(30, 30, 30, 0.95);
+        --frame-background: rgba(30, 30, 30, 1);
+        --frame-blur-background: rgba(30, 30, 30, 0.95);
         --frame-border-color: rgb(76 76 76);
         --frame-border-radius: 7px;
 
         /* Text */
+        --frame-title-font-size: 8pt;
         --frame-font-size: 10pt;
         --frame-font-family: system-ui, sans-serif;
-        --frame-title-font-size: 8pt;
         --frame-font-color: white;
         --frame-font-blur-color: rgba(255, 255, 255, 0.6);
-        --frame-button-hover-background: rgba(255, 255, 255, 0.1);
-        --frame-button-active-background: rgba(255, 255, 255, 0.2);
 
         /* Icons */
         --frame-icon-size: 20px;
 
         /* Buttons */
         --frame-button-width: 32px;
+        --frame-button-hover-background: rgba(255, 255, 255, 0.1);
+        --frame-button-active-background: rgba(255, 255, 255, 0.2);
 
         /* Padding */
         --frame-padding-x: 8px;
@@ -310,10 +311,23 @@ export const getDefaultWindowFrameStyle = ({
         color: var(--frame-font-color);
       }
 
+      ${getElementName('.frame-top', '', `body.${blurClass}`)} {
+        background: var(--frame-blur-background);
+      }
+
       /* Active effects */
       ${getElementName('.frame-buttons > button:active')},
       ${getElementName('.frame-menu > button:active')} {
         background-color: var(--frame-button-active-background);
+      }
+
+      /* Border last and first button */
+      ${getElementName('.frame-top-right .frame-buttons > button:last-child')} {
+        border-top-right-radius: var(--frame-border-radius);
+      }
+
+      ${getElementName('.frame-top-left .frame-buttons:first-child > button:first-child')} {
+        border-top-left-radius: var(--frame-border-radius);
       }
 
       /* Full Screen and Maximize */
@@ -336,6 +350,15 @@ export const getDefaultWindowFrameStyle = ({
         border-right: 0px solid transparent !important;
         border-bottom-left-radius: 0px !important;
         border-bottom-right-radius: 0px !important;
+      }
+
+      /* Close Button */
+      ${getElementName('.frame-buttons > .btn-close:hover')} {
+        background-color: #C42B1C;
+      }
+
+      ${getElementName('.frame-buttons > .btn-close:active')} {
+        background-color: #B12719;
       }
     `;
 };
