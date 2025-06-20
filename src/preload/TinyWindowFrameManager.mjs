@@ -54,7 +54,7 @@ class TinyWindowFrameManager {
   #elements;
 
   /** @type {Record<string, HTMLStyleElement>} */
-  styles = {};
+  #styles = {};
 
   /**
    * Generates a formatted element name based on the given parameters.
@@ -304,7 +304,7 @@ class TinyWindowFrameManager {
     if (filename !== 'default' && filename !== 'root')
       throw new TypeError('The "filename" argument must be either "default" or "root".');
 
-    const style = this.styles[filename];
+    const style = this.#styles[filename];
     if (!style || !style.textContent) throw new Error(`No CSS content found for "${filename}".`);
     return saveCssFile(directory, `electron-${filename}.css`, style.textContent);
   }
@@ -315,7 +315,7 @@ class TinyWindowFrameManager {
     root.textContent = getDefaultWindowFrameRoot();
 
     document.head.prepend(root);
-    this.styles.root = root;
+    this.#styles.root = root;
     if (!applyDefaultStyles) return;
 
     const style = document.createElement('style');
@@ -328,7 +328,7 @@ class TinyWindowFrameManager {
     });
 
     document.head.prepend(style);
-    this.styles.default = style;
+    this.#styles.default = style;
   }
 
   /** 🔥 Internal to update menu visibility */
@@ -340,12 +340,29 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * ✅ Content container
+   * ✅ Content html
    *
+   * @param {'rootContent'|'root'|'frame'|'top'|'menuLeft'|'menuRight'|'icon'|'title'|'topLeft'|'topCenter'|'topRight'} name
    * @returns {HTMLDivElement}
    */
-  get content() {
-    return this.#elements.rootContent;
+  getHtml(name = 'rootContent') {
+    if (!(this.#elements[name] instanceof HTMLElement)) throw new Error('');
+    return this.#elements[name];
+  }
+
+  /**
+   * ✅ Content button html
+   *
+   * @param {'root'|'maximize'|'minimize'|'close'} name
+   * @returns {HTMLButtonElement|HTMLDivElement}
+   */
+  getButtonHtml(name) {
+    if (
+      !(this.#elements.buttons[name] instanceof HTMLButtonElement) &&
+      !(this.#elements.buttons[name] instanceof HTMLDivElement)
+    )
+      throw new Error('');
+    return this.#elements.buttons[name];
   }
 
   /**
