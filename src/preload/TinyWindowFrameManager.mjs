@@ -29,25 +29,26 @@ class TinyWindowFrameManager {
   #client;
 
   /**
-   * @typedef {{
-   *  rootContent: HTMLDivElement;
-   *  root: HTMLDivElement;
-   *  frame: HTMLDivElement;
-   *  top: HTMLDivElement;
-   *  menuLeft: HTMLDivElement;
-   *  menuRight: HTMLDivElement;
-   *  icon: HTMLDivElement;
-   *  title: HTMLDivElement;
-   *  topLeft: HTMLDivElement;
-   *  topCenter: HTMLDivElement;
-   *  topRight: HTMLDivElement;
-   *  buttons: {
-   *    root: HTMLDivElement;
-   *    maximize: HTMLButtonElement;
-   *    minimize: HTMLButtonElement;
-   *    close: HTMLButtonElement;
-   *  }
-   * }} FrameElements
+   * Represents all HTML elements related to the custom window frame structure.
+   * This includes the main container, title bar, borders, menus, and control buttons.
+   *
+   * @typedef {Object} FrameElements
+   * @property {HTMLDivElement} rootContent - The main content container inside the window frame.
+   * @property {HTMLDivElement} root - The root container for the entire frame structure.
+   * @property {HTMLDivElement} frame - The outer frame that wraps the window content and borders.
+   * @property {HTMLDivElement} top - The top bar container that holds title, icon, menus, and buttons.
+   * @property {HTMLDivElement} menuLeft - The left-aligned menu container in the top bar.
+   * @property {HTMLDivElement} menuRight - The right-aligned menu container in the top bar.
+   * @property {HTMLDivElement} icon - The container for the application icon displayed in the top bar.
+   * @property {HTMLDivElement} title - The container for the window title text.
+   * @property {HTMLDivElement} topLeft - The left corner border of the top bar (used for styling or resizing).
+   * @property {HTMLDivElement} topCenter - The center border of the top bar (typically stretches between left and right corners).
+   * @property {HTMLDivElement} topRight - The right corner border of the top bar.
+   * @property {Object} buttons - The group of window control buttons (minimize, maximize, close).
+   * @property {HTMLDivElement} buttons.root - The container that holds all control buttons.
+   * @property {HTMLButtonElement} buttons.maximize - The button to maximize or restore the window.
+   * @property {HTMLButtonElement} buttons.minimize - The button to minimize the window.
+   * @property {HTMLButtonElement} buttons.close - The button to close the window.
    */
 
   /** @type {FrameElements} */
@@ -73,12 +74,18 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * @param {Object} [options]
-   * @param {boolean} [options.applyDefaultStyles=true]
-   * @param {'left'|'right'} [options.buttonsPosition='right']
-   * @param {'left'|'center'|'right'} [options.titlePosition='center']
-   * @param {string[]} [options.buttonsMap=['minimize', 'maximize', 'close']]
-   * @param {TinyElectronClient} [options.client]
+   * Creates an instance of the custom window frame with a draggable title bar,
+   * customizable buttons, and dynamic styling that integrates with Electron.
+   *
+   * @param {Object} [options] - Configuration options for the window frame.
+   * @param {boolean} [options.applyDefaultStyles=true] - If true, applies the default CSS styles automatically.
+   * @param {'left'|'right'} [options.buttonsPosition='right'] - Defines the position of the window control buttons (minimize, maximize, close).
+   * @param {'left'|'center'|'right'} [options.titlePosition='center'] - Defines the position of the window title in the top bar.
+   * @param {string[]} [options.buttonsMap=['minimize', 'maximize', 'close']] - Determines which buttons appear and their order. Valid values are 'minimize', 'maximize', and 'close'.
+   * @param {TinyElectronClient} [options.client] - The Electron client interface that handles window events like minimize, maximize, close, and focus.
+   * @throws {TypeError} If any option has an invalid type.
+   * @throws {Error} If buttonsMap contains invalid button names.
+   * @throws {Error} If client is not a valid TinyElectronClient instance.
    */
   constructor({
     applyDefaultStyles = true,
@@ -87,7 +94,33 @@ class TinyWindowFrameManager {
     buttonsMap = ['minimize', 'maximize', 'close'],
     client,
   } = {}) {
-    if (!(client instanceof TinyElectronClient)) throw new Error('');
+    // Validate client
+    if (!(client instanceof TinyElectronClient))
+      throw new Error(
+        `Invalid client instance. Expected instance of TinyElectronClient. Received: ${client}`,
+      );
+
+    // Validate types
+    if (typeof applyDefaultStyles !== 'boolean')
+      throw new TypeError(`applyDefaultStyles must be a boolean. Received: ${applyDefaultStyles}`);
+
+    if (!['left', 'right'].includes(buttonsPosition))
+      throw new Error(`buttonsPosition must be 'left' or 'right'. Received: ${buttonsPosition}`);
+
+    if (!['left', 'center', 'right'].includes(titlePosition))
+      throw new Error(
+        `titlePosition must be 'left', 'center' or 'right'. Received: ${titlePosition}`,
+      );
+
+    if (
+      !Array.isArray(buttonsMap) ||
+      !buttonsMap.every((btn) => ['minimize', 'maximize', 'close'].includes(btn))
+    )
+      throw new Error(
+        `buttonsMap must be an array containing any combination of 'minimize', 'maximize', 'close'. Received: ${JSON.stringify(
+          buttonsMap,
+        )}`,
+      );
 
     this.#options.buttonsPosition = buttonsPosition;
     this.#options.titlePosition = titlePosition;
@@ -309,6 +342,12 @@ class TinyWindowFrameManager {
     return saveCssFile(directory, `electron-${filename}.css`, style.textContent);
   }
 
+  /**
+   * Apply the default CSS styles for the window frame.
+   * This includes the base styles for the frame container and optional theme styling.
+   *
+   * @param {boolean} [applyDefaultStyles=false] - If true, applies the full default styling. If false, applies only the root structure.
+   */
   #applyDefaultStyles(applyDefaultStyles = false) {
     const root = document.createElement('style');
     root.id = 'electron-window-root-style';
@@ -331,7 +370,11 @@ class TinyWindowFrameManager {
     this.#styles.default = style;
   }
 
-  /** 🔥 Internal to update menu visibility */
+  /**
+   * Check the visibility of left and right menus.
+   * Hides the menu if it has no children and shows if it has at least one.
+   * 🔥 Internal use only.
+   */
   #checkMenuVisibility() {
     const menuRight = this.#elements.menuRight;
     menuRight.style.display = menuRight.children.length === 0 ? 'none' : 'flex';
@@ -340,35 +383,53 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * ✅ Content html
+   * Get the HTML container element by its name.
    *
-   * @param {'rootContent'|'root'|'frame'|'top'|'menuLeft'|'menuRight'|'icon'|'title'|'topLeft'|'topCenter'|'topRight'} name
-   * @returns {HTMLDivElement}
+   * @param {'rootContent'|'root'|'frame'|'top'|'menuLeft'|'menuRight'|'icon'|'title'|'topLeft'|'topCenter'|'topRight'} name - The name of the element to retrieve.
+   * @returns {HTMLDivElement} - The corresponding HTMLDivElement.
+   * @throws {Error} If the element name is invalid.
    */
   getHtml(name = 'rootContent') {
-    if (!(this.#elements[name] instanceof HTMLElement)) throw new Error('');
+    if (
+      typeof name !== 'string' ||
+      !(name in this.#elements) ||
+      !(this.#elements[name] instanceof HTMLElement)
+    )
+      throw new Error(
+        `Invalid element name "${name}". Must be one of: ${Object.keys(this.#elements).join(', ')}`,
+      );
     return this.#elements[name];
   }
 
   /**
-   * ✅ Content button html
+   * Get one of the window control buttons (minimize, maximize, close) or the buttons container.
    *
-   * @param {'root'|'maximize'|'minimize'|'close'} name
-   * @returns {HTMLButtonElement|HTMLDivElement}
+   * @param {'root'|'maximize'|'minimize'|'close'} name - The name of the button or container.
+   * @returns {HTMLButtonElement|HTMLDivElement} - The corresponding button or container.
+   * @throws {Error} If the button name is invalid.
    */
   getButtonHtml(name) {
     if (
-      !(this.#elements.buttons[name] instanceof HTMLButtonElement) &&
-      !(this.#elements.buttons[name] instanceof HTMLDivElement)
+      typeof name !== 'string' ||
+      !(name in this.#elements.buttons) ||
+      !(
+        this.#elements.buttons[name] instanceof HTMLButtonElement ||
+        this.#elements.buttons[name] instanceof HTMLDivElement
+      )
     )
-      throw new Error('');
+      throw new Error(
+        `Invalid button name "${name}". Must be one of: ${Object.keys(this.#elements.buttons).join(
+          ', ',
+        )}`,
+      );
     return this.#elements.buttons[name];
   }
 
   /**
-   * ✅ Add any custom HTMLElement to menu
-   * @param {HTMLElement} element
-   * @param {'left'|'right'} [position]
+   * Add a custom HTML element to the left or right menu bar.
+   *
+   * @param {HTMLElement} element - The HTML element to add.
+   * @param {'left'|'right'} [position='left'] - The position of the menu to insert the element.
    */
   addMenuCustomElement(element, position = 'left') {
     const menu = this.getMenuElement(position);
@@ -377,7 +438,9 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * @param {'left'|'right'} [position]
+   * Show the menu bar (left or right) with a fade-in effect.
+   *
+   * @param {'left'|'right'} [position='left'] - The menu position to show.
    */
   showMenu(position = 'left') {
     const menu = this.getMenuElement(position);
@@ -387,23 +450,36 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * @param {'left'|'right'} [position]
+   * Hide the menu bar (left or right) with a fade-out effect.
+   *
+   * @param {'left'|'right'} [position='left'] - Defines which menu to hide.
+   * @param {number} [fadeOutTime=200] - Duration of the fade-out effect in milliseconds. Must be a non-negative number.
+   * @throws {TypeError} If fadeOutTime is not a valid number.
+   * @throws {Error} If position is invalid.
    */
-  hideMenu(position = 'left') {
+  hideMenu(position = 'left', fadeOutTime = 200) {
+    // Validate fadeOutTime
+    if (typeof fadeOutTime !== 'number' || !Number.isFinite(fadeOutTime) || fadeOutTime < 0)
+      throw new TypeError(`fadeOutTime must be a non-negative number. Received: ${fadeOutTime}`);
+
     const menu = this.getMenuElement(position);
     menu.classList.remove('menu-fade-in');
     menu.classList.add('menu-fade-out');
     setTimeout(() => {
       menu.style.display = 'none';
-    }, 200);
+    }, fadeOutTime);
   }
 
   /**
-   * ✅ Get menu DOM element
+   * Get the menu DOM element (left or right).
    *
-   * @param {'left'|'right'} [position]
+   * @param {'left'|'right'} [position='left'] - The position of the menu.
+   * @returns {HTMLDivElement} - The menu container element.
+   * @throws {Error} - If the position is invalid.
    */
   getMenuElement(position = 'left') {
+    if (position !== 'left' && position !== 'right')
+      throw new Error(`Invalid menu position "${position}". Allowed values are 'left' or 'right'.`);
     const menu =
       position === 'left'
         ? this.#elements.menuLeft
@@ -411,21 +487,28 @@ class TinyWindowFrameManager {
           ? this.#elements.menuRight
           : null;
 
-    if (!menu) throw new Error('');
+    if (!menu) throw new Error(`Invalid menu position "${position}" element.`);
     return menu;
   }
 
   /**
-   * ✅ Add a button to the menu bar
+   * Add a button to the menu bar (left or right).
    *
-   * @param {string} label
-   * @param {Object} [settings={}]
-   * @param {(this: GlobalEventHandlers, ev: MouseEvent) => any} [settings.onClick]
-   * @param {'left'|'right'} [settings.position='left']
-   * @param {string} [settings.id]
+   * @param {string} label - The text label of the button.
+   * @param {Object} [settings={}] - Button settings.
+   * @param {(this: GlobalEventHandlers, ev: MouseEvent) => any} [settings.onClick] - Click event handler for the button.
+   * @param {'left'|'right'} [settings.position='left'] - Menu position where the button will be placed.
+   * @param {string} [settings.id] - Optional ID to identify the button for future removal.
+   * @returns {HTMLButtonElement} - The created button element.
+   * @throws {TypeError} If label is not a string.
+   * @throws {TypeError} If onClick is not a function.
+   * @throws {Error} If position is invalid.
    */
   addMenuButton(label, { onClick, position = 'left', id } = {}) {
-    if (typeof onClick !== 'function') throw new Error('');
+    if (typeof label !== 'string' || !label.trim())
+      throw new TypeError(`Label must be a non-empty string. Received: ${label}`);
+    if (typeof onClick !== 'function')
+      throw new TypeError(`onClick must be a function. Received: ${onClick}`);
 
     const btn = document.createElement('button');
     btn.textContent = label;
@@ -439,8 +522,12 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * @param {string|HTMLElement} idOrElement
-   * @param {'left'|'right'} [position='left']
+   * Remove a menu button by its ID or by passing the HTMLElement itself.
+   *
+   * @param {string|HTMLElement} idOrElement - The button ID (from `data-menu-id`) or the button element itself.
+   * @param {'left'|'right'} [position='left'] - Menu position to target.
+   * @throws {TypeError} If idOrElement is not a string or HTMLElement.
+   * @throws {Error} If position is invalid.
    */
   removeMenuButton(idOrElement, position = 'left') {
     const menu = this.getMenuElement(position);
@@ -449,13 +536,17 @@ class TinyWindowFrameManager {
       if (el) el.remove();
     } else if (idOrElement instanceof HTMLElement) {
       menu.contains(idOrElement) && idOrElement.remove();
-    }
+    } else
+      throw new TypeError(`idOrElement must be a string or HTMLElement. Received: ${idOrElement}`);
+
     this.#checkMenuVisibility();
   }
 
   /**
-   * ✅ Remove all menu buttons
-   * @param {'left'|'right'} [position='left']
+   * Remove all elements from the menu bar (left or right).
+   *
+   * @param {'left'|'right'} [position='left'] - The menu position to clear.
+   * @throws {Error} If position is invalid.
    */
   clearMenu(position = 'left') {
     const menu = this.getMenuElement(position);
@@ -464,37 +555,48 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * ✅ Change the window title
+   * Change the window title text.
    *
-   * @param {string} text
+   * @param {string} text - The new title to display.
+   * @throws {TypeError} If text is not a string.
    */
   setTitle(text) {
+    if (typeof text !== 'string') throw new TypeError(`Title must be a string. Received: ${text}`);
     this.#elements.title.textContent = text;
   }
 
   /**
-   * ✅ Set or change the window icon
+   * Set or update the window icon image.
    *
-   * @param {string} url
+   * @param {string} url - The URL of the image to use as the icon. Pass an empty string to remove the icon.
+   * @throws {TypeError} If url is not a string.
    */
   setIcon(url) {
+    if (typeof url !== 'string') throw new TypeError(`Icon URL must be a string. Received: ${url}`);
+
     if (url.length > 0) {
       this.#elements.icon.style.backgroundImage = `url(${url})`;
       this.#elements.topLeft.prepend(this.#elements.icon);
     } else this.removeIcon();
   }
 
+  /**
+   * Remove the current window icon from the title bar.
+   */
   removeIcon() {
-    this.#elements.icon.remove();
+    if (this.#elements.topLeft.contains(this.#elements.icon)) this.#elements.icon.remove();
     this.#elements.icon.style.backgroundImage = '';
   }
 
   /**
-   * ✅ Apply custom CSS
+   * Apply custom CSS to the document.
    *
-   * @param {string} css
+   * @param {string} css - The CSS rules as a string.
+   * @returns {HTMLStyleElement} - The created <style> element appended to the document head.
+   * @throws {TypeError} If css is not a string.
    */
   applyCustomStyle(css) {
+    if (typeof css !== 'string') throw new TypeError(`CSS must be a string. Received: ${css}`);
     const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
