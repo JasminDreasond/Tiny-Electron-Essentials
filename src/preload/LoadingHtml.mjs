@@ -17,11 +17,11 @@
  * @typedef {Object} GetLoadingHtml
  * @property {string} [id='app-loading-style']
  * @property {string} [className='app-loading-wrap root-electron-style-solo']
- * @property {DefaultStyleCreator} [styleCreator=defaultStyleCreator]
+ * @property {DefaultStyleCreator} [styleCreator=defaultLoadingStyleCreator]
  */
 
 /** @type {DefaultStyleCreator} */
-function defaultStyleCreator() {
+export function defaultLoadingStyleCreator() {
   const containerClass = 'container__loaders-css';
   const className = `loaders-css__square-spin`;
 
@@ -67,6 +67,36 @@ function defaultStyleCreator() {
 }
 
 /**
+ * Creates a transparent, non-interactive window overlay style.
+ *
+ * @returns {{ styleContent: string, html: string }}
+ */
+export function transparentOverlayStyle() {
+  const styleContent = `
+    .transparent-electron-window {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: transparent;
+      -webkit-user-select: none;
+      z-index: 999999;
+    }
+    html, body, * {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+  `;
+
+  const html = `<div class="transparent-electron-window"></div>`;
+
+  return { styleContent, html };
+}
+
+/**
  * Generates loading screen HTML and corresponding styles.
  *
  * @param {GetLoadingHtml} [settings={}]
@@ -80,7 +110,7 @@ function defaultStyleCreator() {
  * @throws {TypeError} If id or className are not strings
  */
 export const getLoadingHtml = ({
-  styleCreator = defaultStyleCreator,
+  styleCreator = defaultLoadingStyleCreator,
   id = 'app-loading-style',
   className = 'app-loading-wrap root-electron-style-solo',
 } = {}) => {

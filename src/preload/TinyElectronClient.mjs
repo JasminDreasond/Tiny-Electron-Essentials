@@ -11,8 +11,8 @@ import { getLoadingHtml } from './LoadingHtml.mjs';
  * to control its insertion and removal from the DOM.
  *
  * @typedef {Object} InstallLoadingPageResult
- * @property {() => void} appendLoading - Appends the loading screen elements to the document.
- * @property {() => void} removeLoading - Removes the loading screen elements from the document.
+ * @property {() => void} append - Appends the loading screen elements to the document.
+ * @property {() => void} remove - Removes the loading screen elements from the document.
  */
 
 /**
@@ -1200,13 +1200,13 @@ class TinyElectronClient {
   /**
    * Installs a loading page and exposes methods to control it via the main world context.
    *
-   * @param {string} [exposeInMainWorld='useLoadingElectron'] - The name of the property exposed in the window object via Electron’s `contextBridge`.
+   * @param {string} [exposeInMainWorld='electronLoading'] - The name of the property exposed in the window object via Electron’s `contextBridge`.
    * @param {GetLoadingHtml} [config] - Optional configuration for the loading screen, including custom HTML and CSS.
-   * @returns {InstallLoadingPageResult} Object containing `appendLoading` and `removeLoading` methods.
+   * @returns {InstallLoadingPageResult} Object containing `append` and `remove` methods.
    *
    * @throws {TypeError} If `exposeInMainWorld` is provided but is not a string.
    */
-  installLoadingPage(exposeInMainWorld = 'useLoadingElectron', config) {
+  installLoadingPage(exposeInMainWorld = 'electronLoading', config) {
     if (typeof exposeInMainWorld !== 'undefined' && typeof exposeInMainWorld !== 'string')
       throw new TypeError(
         `Invalid key type "${typeof exposeInMainWorld}" of exposeInMainWorld. Only string keys are supported.`,
@@ -1264,11 +1264,10 @@ class TinyElectronClient {
     /**
      * Initializes the loading screen and provides control methods for it.
      *
-     * @returns {InstallLoadingPageResult} Object with methods to append or remove the loading screen.
+     * @returns {{ appendLoading: () => void, removeLoading: () => void }} Object with methods to append or remove the loading screen.
      */
     function useLoading() {
       const { oStyle, oDiv } = getLoadingHtml(config);
-      /** @type {InstallLoadingPageResult} */
       return {
         appendLoading() {
           safeDOM.append(document.head, oStyle);
@@ -1284,15 +1283,18 @@ class TinyElectronClient {
     // ----------------------------------------------------------------------
 
     const { appendLoading, removeLoading } = useLoading();
-    if (typeof exposeInMainWorld === 'string')
-      contextBridge.exposeInMainWorld(exposeInMainWorld, { appendLoading, removeLoading });
+    if (typeof exposeInMainWorld === 'string') {
+      /** @type {InstallLoadingPageResult} */
+      const api = { append: appendLoading, remove: removeLoading };
+      contextBridge.exposeInMainWorld(exposeInMainWorld, api);
+    }
     domReady().then(appendLoading);
 
     window.onmessage = (ev) => {
       ev.data.payload === 'removeLoading' && removeLoading();
     };
 
-    return { appendLoading, removeLoading };
+    return { append: appendLoading, remove: removeLoading };
   }
 
   /**

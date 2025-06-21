@@ -4,6 +4,7 @@ const {
   TinyDb,
   TinyElectronNotification,
   TinyWindowFrameManager,
+  transparentOverlayStyle,
 } = require('../preload/index.cjs');
 const { RootEvents } = require('../global/Events.cjs');
 
@@ -11,7 +12,7 @@ const { RootEvents } = require('../global/Events.cjs');
 const client = new TinyElectronClient();
 client.installWinScript();
 client.requestCache();
-const { removeLoading } = client.installLoadingPage();
+const electronLoading = client.installLoadingPage();
 
 const createRootEvent = (eventName) =>
   client.on(eventName, (value) => console.log(eventName, value));
@@ -67,7 +68,7 @@ contextBridge.exposeInMainWorld('api', {
 
 client.on(RootEvents.ReadyToShow, () => client.requestCache());
 client.on(RootEvents.Ready, () => {
-  removeLoading();
+  electronLoading.remove();
   client.requestCache();
   const win = new TinyWindowFrameManager({
     client,
