@@ -306,6 +306,39 @@ export const getDefaultWindowFrameStyle = ({
         padding-left: var(--frame-padding-x);
       }
 
+      /* Buttons Dropdown */
+      ${getElementName('.menu-dropdown')} {
+        background: var(--frame-background);
+        border: 1px solid var(--frame-border-color);
+        padding: 4px;
+        border-radius: 6px;
+        display: none;
+        gap: 4px;
+        z-index: 9999;
+        min-width: 130px;
+      }
+
+      ${getElementName('.menu-item')} {
+        background: none;
+        color: var(--frame-font-color);
+        border: none;
+        text-align: left;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      ${getElementName('.menu-item:hover')} {
+        background: var(--frame-button-hover-background);
+      }
+
+      ${getElementName('.has-dropdown::after')},
+      ${getElementName('.has-submenu::after')} {
+        content: '▸';
+        float: right;
+        margin-left: 6px;
+      }
+
       /* Blur effects */
       ${getElementName('.frame-title', '', `body.${blurClass}`)},
       ${getElementName('.frame-menu > button', '', `body.${blurClass}`)},

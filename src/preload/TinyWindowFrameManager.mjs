@@ -603,33 +603,169 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * Add a button to the menu bar (left or right).
+   * @typedef {{
+   *  label: string;
+   *  onClick: (this: GlobalEventHandlers, ev: MouseEvent) => any;
+   *  items?: MenuDropdown[];
+   * }} MenuDropdown
+   */
+
+  /**
+   * Add a button to the menu bar with optional dropdown and submenus.
    *
    * @param {string} label - The text label of the button.
    * @param {Object} [settings={}] - Button settings.
    * @param {(this: GlobalEventHandlers, ev: MouseEvent) => any} [settings.onClick] - Click event handler for the button.
    * @param {'left'|'right'} [settings.position='left'] - Menu position where the button will be placed.
-   * @param {string} [settings.id] - Optional ID to identify the button for future removal.
+   * @param {string} [settings.id] - Optional identifier.
+   * @param {MenuDropdown[]} [settings.items] - Dropdown items or submenus.
    * @returns {HTMLButtonElement} - The created button element.
    * @throws {TypeError} If label is not a string.
    * @throws {TypeError} If onClick is not a function.
    * @throws {Error} If position is invalid.
    */
-  addMenuButton(label, { onClick, position = 'left', id } = {}) {
+  addMenuButton(label, { onClick, position = 'left', id, items } = {}) {
     if (typeof label !== 'string' || !label.trim())
       throw new TypeError(`Label must be a non-empty string. Received: ${label}`);
-    if (typeof onClick !== 'function')
-      throw new TypeError(`onClick must be a function. Received: ${onClick}`);
 
+    // Prepare data
+    const menu = this.getMenuElement(position);
     const btn = document.createElement('button');
+    btn.classList.add('menu-button');
     btn.textContent = label;
     if (id) btn.dataset.menuId = id;
 
-    btn.onclick = onClick;
-    if (position === 'left') this.#elements.menuLeft.appendChild(btn);
-    if (position === 'right') this.#elements.menuRight.appendChild(btn);
+    // Has dropdown
+    if (Array.isArray(items) && items.length > 0) {
+      const { dropdown, closeDropdown } = this.#createDropdown(items, position);
+      btn.classList.add('has-dropdown');
+      btn.appendChild(dropdown);
+
+      /** @param {boolean} isVisible */
+      const updateDropdown = (isVisible) => {
+        if (!dropdown) return;
+        const bounds = dropdown.getBoundingClientRect();
+        // const absoluteTop = bounds.top + window.scrollY;
+        const absoluteLeft = bounds.left + window.scrollX;
+        dropdown.style.left = isVisible ? `${absoluteLeft - 10}px` : '';
+      };
+
+      // Button click
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!dropdown) return;
+        const isVisible = dropdown.style.display === 'flex';
+        document.querySelectorAll('.menu-dropdown').forEach((d) => {
+          if (d instanceof HTMLElement) d.style.display = 'none';
+        });
+        dropdown.style.display = isVisible ? 'none' : 'flex';
+        updateDropdown(!isVisible);
+      });
+
+      document.addEventListener('click', () => {
+        closeDropdown();
+        updateDropdown(false);
+      });
+    }
+
+    // Simple click
+    else if (typeof onClick === 'function') btn.onclick = onClick;
+    // Nothing
+    else throw new TypeError(`onClick must be a function if no dropdown items are provided.`);
+
+    // Complete
+    menu.appendChild(btn);
     this.#checkMenuVisibility();
     return btn;
+  }
+
+  /**
+   * Internal: Create a dropdown container.
+   *
+   * @param {MenuDropdown[]} items - List of items or submenus.
+   * @param {'left'|'right'} direction - Dropdown opening direction.
+   * @param {(() => void)|null} [secondCloseDropdown=null] - Second dropdown closer.
+   * @returns {{ dropdown: HTMLDivElement; closeDropdown: () => void }}
+   */
+  #createDropdown(items, direction = 'right', secondCloseDropdown = null) {
+    const dropdown = document.createElement('div');
+    dropdown.classList.add('menu-dropdown');
+    dropdown.style.flexDirection = 'column';
+    dropdown.style.display = 'none';
+
+    dropdown.style.position = 'absolute';
+    dropdown.style.top = '100%';
+
+    /**
+     * Dropdown Closer
+     * @param {HTMLElement} dd
+     */
+    const closeDropdownGen = (dd) => () => {
+      if (dd) dd.style.display = 'none';
+      if (typeof secondCloseDropdown === 'function') secondCloseDropdown();
+    };
+
+    const closeDropdown = closeDropdownGen(dropdown);
+
+    // Items list
+    items.forEach((item) => {
+      if (typeof item !== 'object' || !item.label) return;
+
+      const el = document.createElement('button');
+      el.textContent = item.label;
+      el.classList.add('menu-item');
+
+      // More items
+      if (Array.isArray(item.items) && item.items.length > 0) {
+        const { dropdown: subDropdown, closeDropdown: closeSubDropdown } = this.#createDropdown(
+          item.items,
+          direction,
+          closeDropdown,
+        );
+
+        el.classList.add('has-submenu');
+        el.appendChild(subDropdown);
+
+        // Menu event click
+
+        /** @param {boolean} isVisible */
+        const updateDropdown = (isVisible) => {
+          if (!subDropdown) return;
+          const dropdownBounds = dropdown.getBoundingClientRect();
+          const elBounds = el.getBoundingClientRect();
+          subDropdown.style.left = isVisible ? `${dropdownBounds.width}px` : '';
+          subDropdown.style.top = isVisible ? `${elBounds.top - elBounds.height - 10}px` : '';
+        };
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isVisible = subDropdown.style.display === 'flex';
+          subDropdown.style.display = isVisible ? 'none' : 'flex';
+          updateDropdown(!isVisible);
+        });
+
+        document.addEventListener('click', () => {
+          closeSubDropdown();
+          updateDropdown(false);
+        });
+      }
+
+      // Single event click
+      else if (typeof item.onClick === 'function') {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // @ts-ignore
+          item.onClick(e);
+          closeDropdown();
+        });
+      }
+
+      // Complete
+      dropdown.appendChild(el);
+    });
+
+    // Complete
+    return { dropdown, closeDropdown };
   }
 
   /**

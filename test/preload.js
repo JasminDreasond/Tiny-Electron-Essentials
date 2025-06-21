@@ -4,7 +4,6 @@ const {
   TinyDb,
   TinyElectronNotification,
   TinyWindowFrameManager,
-  transparentOverlayStyle,
 } = require('../preload/index.cjs');
 const { RootEvents } = require('../global/Events.cjs');
 
@@ -83,8 +82,38 @@ client.on(RootEvents.Ready, () => {
     setTimeout(() => win.setIcon('../icons/favicon.png'), 5000);
   }, 10000);
 
+  win.addMenuButton('File', {
+    position: 'left',
+    items: [
+      {
+        label: 'New',
+        onClick: () => console.log('New'),
+      },
+      {
+        label: 'Open',
+        onClick: () => console.log('Open'),
+      },
+      {
+        label: 'Export',
+        items: [
+          // Submenu
+          {
+            label: 'As PNG',
+            onClick: () => console.log('As PNG'),
+          },
+          {
+            label: 'As PDF',
+            onClick: () => console.log('As PDF'),
+          },
+        ],
+      },
+      { label: 'Exit', onClick: () => client.quit() },
+    ],
+  });
+
   win.addMenuButton('Home', { onClick: () => console.log('Home') });
   win.addMenuButton('Settings', { onClick: () => console.log('Settings') });
+
   setTimeout(() => {
     win.hideMenu();
     setTimeout(() => win.showMenu(), 1000);
