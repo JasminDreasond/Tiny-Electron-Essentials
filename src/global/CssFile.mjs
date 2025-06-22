@@ -311,11 +311,11 @@ export const getDefaultWindowFrameStyle = ({
         background: var(--frame-background);
         border: 1px solid var(--frame-border-color);
         padding: 4px;
-        border-radius: 6px;
+        border-radius: 4px;
         display: none;
         gap: 4px;
         z-index: 9999;
-        min-width: 130px;
+        min-width: 150px;
       }
 
       ${getElementName('.menu-item')} {
@@ -356,7 +356,9 @@ export const getDefaultWindowFrameStyle = ({
       }
 
       /* Active effects */
-      ${getElementName('.frame-buttons > button:active')} {
+      ${getElementName('.frame-buttons > button:active')},
+      ${getElementName('.frame-menu > button:active:not(.has-dropdown)')},
+      ${getElementName('.frame-menu > button.active')} {
         background-color: var(--frame-button-active-background);
       }
 

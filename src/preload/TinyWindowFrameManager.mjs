@@ -9,6 +9,16 @@ import { moveBodyContentTo } from '../global/Utils.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
 
 /**
+ * @typedef {Object} MenuDropdown
+ * @property {string} label - The text label displayed for this menu item.
+ * @property {(this: GlobalEventHandlers, ev: MouseEvent) => any} [onClick] -
+ * The function to execute when this item is clicked. Optional if 'items' is provided.
+ * @property {MenuDropdown[]} [items] -
+ * A list of child menu items for creating submenus.
+ * If provided, this item becomes a parent to a nested dropdown.
+ */
+
+/**
  * TinyWindowFrameManager
  *
  * A powerful and fully customizable window frame manager for Electron applications
@@ -603,14 +613,6 @@ class TinyWindowFrameManager {
   }
 
   /**
-   * @typedef {{
-   *  label: string;
-   *  onClick: (this: GlobalEventHandlers, ev: MouseEvent) => any;
-   *  items?: MenuDropdown[];
-   * }} MenuDropdown
-   */
-
-  /**
    * Add a button to the menu bar with optional dropdown and submenus.
    *
    * @param {string} label - The text label of the button.
@@ -638,7 +640,13 @@ class TinyWindowFrameManager {
 
     // Has dropdown
     if (Array.isArray(items) && items.length > 0) {
-      const { dropdown, closeDropdown } = this.createDropdown(items, position, dropdownHideTimeout);
+      const { dropdown, closeDropdown } = this.createDropdown({
+        direction: position,
+        hideTimeout: dropdownHideTimeout,
+        onClose: () => updateDropdown(false),
+        items,
+      });
+
       btn.classList.add('has-dropdown');
       btn.appendChild(dropdown);
 
@@ -649,6 +657,13 @@ class TinyWindowFrameManager {
         // const absoluteTop = bounds.top + window.scrollY;
         const absoluteLeft = bounds.left + window.scrollX;
         dropdown.style.left = isVisible ? `${absoluteLeft - 10}px` : '';
+        if (isVisible) {
+          btn.classList.add('active');
+          dropdown.style.left = `${absoluteLeft - 10}px`;
+        } else {
+          dropdown.style.left = '';
+          btn.classList.remove('active');
+        }
       };
 
       // Button click
@@ -683,13 +698,37 @@ class TinyWindowFrameManager {
   /**
    * Internal: Create a dropdown container.
    *
-   * @param {MenuDropdown[]} items - List of items or submenus.
-   * @param {'left'|'right'} direction - Dropdown opening direction.
-   * @param {number} [hideTimeout=400] - Dropdown auto hide timeout.
-   * @param {(() => void)|null} [secondCloseDropdown=null] - Second dropdown closer.
+   * @param {Object} [settings={}] - Dropdown settings.
+   * @param {() => void} [settings.onClose] - Dropdown onClose.
+   * @param {MenuDropdown[]} [settings.items] - List of items or submenus.
+   * @param {'left'|'right'} [settings.direction] - Dropdown opening direction.
+   * @param {number} [settings.hideTimeout=400] - Dropdown auto hide timeout.
+   * @param {(() => void)|null} [settings.secondCloseDropdown=null] - Second dropdown closer.
    * @returns {{ dropdown: HTMLDivElement; closeDropdown: () => void }}
    */
-  createDropdown(items, direction = 'right', hideTimeout = 400, secondCloseDropdown = null) {
+  createDropdown({
+    items,
+    onClose,
+    direction = 'right',
+    hideTimeout = 400,
+    secondCloseDropdown = null,
+  } = {}) {
+    // Validate direction
+    if (direction !== 'left' && direction !== 'right')
+      throw new TypeError(`Invalid direction "${direction}". Expected "left" or "right".`);
+
+    // Validate hideTimeout
+    if (typeof hideTimeout !== 'number' || !Number.isFinite(hideTimeout) || hideTimeout < 0)
+      throw new TypeError(`"hideTimeout" must be a non-negative number.`);
+
+    // Validate secondCloseDropdown
+    if (secondCloseDropdown !== null && typeof secondCloseDropdown !== 'function')
+      throw new TypeError(`"secondCloseDropdown" must be a function or null.`);
+
+    // Validate items
+    if (!Array.isArray(items))
+      throw new TypeError(`"items" must be an array of MenuDropdown objects.`);
+
     const dropdown = document.createElement('div');
     dropdown.classList.add('menu-dropdown');
     if (typeof secondCloseDropdown === 'function') dropdown.classList.add('sub-menu-dropdown');
@@ -702,12 +741,13 @@ class TinyWindowFrameManager {
     /** @type {(() => void)[]} */
     const closesDropdown = [];
     const closeDropdown = () => {
-      if (dropdown){ 
+      if (dropdown) {
         dropdown.style.display = 'none';
         dropdown.style.left = '';
       }
       for (const callback of closesDropdown) callback();
       if (typeof secondCloseDropdown === 'function') secondCloseDropdown();
+      if (typeof onClose === 'function') onClose();
     };
 
     // Items list
@@ -720,12 +760,12 @@ class TinyWindowFrameManager {
 
       // More items
       if (Array.isArray(item.items) && item.items.length > 0) {
-        const { dropdown: subDropdown, closeDropdown: closeSubDropdown } = this.createDropdown(
-          item.items,
+        const { dropdown: subDropdown, closeDropdown: closeSubDropdown } = this.createDropdown({
+          secondCloseDropdown: closeDropdown,
+          items: item.items,
           direction,
           hideTimeout,
-          closeDropdown,
-        );
+        });
 
         el.classList.add('has-submenu');
         if (typeof secondCloseDropdown === 'function') el.classList.add('sub-has-submenu');
@@ -738,7 +778,7 @@ class TinyWindowFrameManager {
           if (!subDropdown) return;
           const dropdownBounds = dropdown.getBoundingClientRect();
           const elBounds = el.getBoundingClientRect();
-          subDropdown.style.left = isVisible ? `${dropdownBounds.width}px` : '';
+          subDropdown.style.left = isVisible ? `${dropdownBounds.width - 2}px` : '';
           subDropdown.style.top = isVisible ? `${elBounds.top - elBounds.height - 10}px` : '';
         };
 

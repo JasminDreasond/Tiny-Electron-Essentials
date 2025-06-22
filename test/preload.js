@@ -105,6 +105,60 @@ client.on(RootEvents.Ready, () => {
             label: 'As PDF',
             onClick: () => console.log('As PDF'),
           },
+          {
+            label: 'More',
+            items: [
+              // Submenu
+              {
+                label: 'As WEBP',
+                onClick: () => console.log('As WEBP'),
+              },
+              {
+                label: 'More',
+                items: [
+                  // Submenu
+                  {
+                    label: 'As ICO',
+                    onClick: () => console.log('As ICO'),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Import',
+        items: [
+          // Submenu
+          {
+            label: 'As PNG',
+            onClick: () => console.log('As PNG'),
+          },
+          {
+            label: 'As PDF',
+            onClick: () => console.log('As PDF'),
+          },
+          {
+            label: 'More',
+            items: [
+              // Submenu
+              {
+                label: 'As WEBP',
+                onClick: () => console.log('As WEBP'),
+              },
+              {
+                label: 'More',
+                items: [
+                  // Submenu
+                  {
+                    label: 'As ICO',
+                    onClick: () => console.log('As ICO'),
+                  },
+                ],
+              },
+            ],
+          },
         ],
       },
       { label: 'Exit', onClick: () => client.quit() },
