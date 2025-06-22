@@ -359,6 +359,13 @@ export const getDefaultWindowFrameStyle = ({
         margin-left: 6px;
       }
 
+      /* Hide effects */
+      ${getElementName('.frame-menu > button.hide')},
+      ${getElementName('.frame-icon.hide')} {
+        opacity: 0;
+        pointer-events: none;
+      }
+
       /* Blur effects */
       ${getElementName('.frame-title', '', `body.${blurClass}`)},
       ${getElementName('.frame-menu > button', '', `body.${blurClass}`)},

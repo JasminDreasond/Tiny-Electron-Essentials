@@ -5,7 +5,7 @@ import {
   saveCssFile,
 } from '../global/CssFile.mjs';
 import { RootEvents } from '../global/Events.mjs';
-import { moveBodyContentTo } from '../global/Utils.mjs';
+import { areElementsColliding, moveBodyContentTo } from '../global/Utils.mjs';
 import TinyElectronClient from './TinyElectronClient.mjs';
 
 /**
@@ -428,6 +428,33 @@ class TinyWindowFrameManager {
 
     // Init default style
     this.#applyDefaultStyles(applyDefaultStyles);
+
+    // Effects
+    const resizeEffect = () => {
+      const itemsLeft = this.#elements.menuLeft.querySelectorAll(':scope > *');
+      const itemsRight = this.#elements.menuRight.querySelectorAll(':scope > *');
+
+      /** @param {Element} item */
+      const collisionTester = (item) => {
+        if (areElementsColliding(item, this.#elements.topCenter)) {
+          if (!item.classList.contains('hide')) {
+            item.classList.add('hide');
+            // @ts-ignore
+            item.blur();
+          }
+        } else if (item.classList.contains('hide')) {
+          item.classList.remove('hide');
+        }
+      };
+
+      itemsLeft.forEach(collisionTester);
+      itemsRight.forEach(collisionTester);
+      collisionTester(this.#elements.icon);
+    };
+
+    this.#client.on(RootEvents.Resize, resizeEffect);
+    this.#client.on(RootEvents.Resized, resizeEffect);
+    this.#client.on(RootEvents.WillResize, resizeEffect);
   }
 
   /**
