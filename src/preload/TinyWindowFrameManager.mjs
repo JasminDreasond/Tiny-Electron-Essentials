@@ -738,6 +738,9 @@ class TinyWindowFrameManager {
     dropdown.style.position = 'absolute';
     dropdown.style.top = '100%';
 
+    /** @type {{ exec: (() => void)|null, index: number }} */
+    const stopOtherSubDropdown = { exec: null, index: -1 };
+
     /** @type {(() => void)[]} */
     const closesDropdown = [];
     const closeDropdown = () => {
@@ -751,7 +754,7 @@ class TinyWindowFrameManager {
     };
 
     // Items list
-    items.forEach((item) => {
+    items.forEach((item, index) => {
       if (typeof item !== 'object' || !item.label) return;
 
       const el = document.createElement('button');
@@ -773,13 +776,33 @@ class TinyWindowFrameManager {
 
         // Menu event click
 
-        /** @param {boolean} isVisible */
-        const updateDropdown = (isVisible) => {
+        /**
+         * @param {boolean} isVisible
+         * @param {boolean} [isSpecial]
+         */
+        const updateDropdown = (isVisible, isSpecial = false) => {
           if (!subDropdown) return;
           const dropdownBounds = dropdown.getBoundingClientRect();
           const elBounds = el.getBoundingClientRect();
-          subDropdown.style.left = isVisible ? `${dropdownBounds.width - 2}px` : '';
-          subDropdown.style.top = isVisible ? `${elBounds.top - elBounds.height - 10}px` : '';
+          const executeSpecial = () => {
+            if (isSpecial || !stopOtherSubDropdown.exec || stopOtherSubDropdown.index === index)
+              return;
+            stopOtherSubDropdown.exec();
+          };
+
+          if (isVisible) {
+            subDropdown.style.left = `${dropdownBounds.width - 2}px`;
+            subDropdown.style.top = `${elBounds.top - elBounds.height - 10}px`;
+            executeSpecial();
+            stopOtherSubDropdown.exec = () => hideDropdown(true);
+            stopOtherSubDropdown.index = index;
+          } else {
+            subDropdown.style.left = '';
+            subDropdown.style.top = '';
+            executeSpecial();
+            stopOtherSubDropdown.index = -1;
+            stopOtherSubDropdown.exec = null;
+          }
         };
 
         closesDropdown.push(() => updateDropdown(false));
@@ -793,9 +816,11 @@ class TinyWindowFrameManager {
           }
         };
 
-        const hideDropdown = () => {
-          subDropdown.style.display = 'none';
-          updateDropdown(false);
+        /** @param {boolean} [isSpecial] */
+        const hideDropdown = (isSpecial = false) => {
+          if (stopOtherSubDropdown.index !== -1 && stopOtherSubDropdown.index !== index) return;
+          if (subDropdown) subDropdown.style.display = 'none';
+          updateDropdown(false, isSpecial);
         };
 
         el.addEventListener('click', (e) => e.stopPropagation());
