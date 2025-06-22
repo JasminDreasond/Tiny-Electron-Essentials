@@ -618,13 +618,14 @@ class TinyWindowFrameManager {
    * @param {(this: GlobalEventHandlers, ev: MouseEvent) => any} [settings.onClick] - Click event handler for the button.
    * @param {'left'|'right'} [settings.position='left'] - Menu position where the button will be placed.
    * @param {string} [settings.id] - Optional identifier.
+   * @param {number} [settings.dropdownHideTimeout=400] - Dropdown auto hide timeout.
    * @param {MenuDropdown[]} [settings.items] - Dropdown items or submenus.
    * @returns {HTMLButtonElement} - The created button element.
    * @throws {TypeError} If label is not a string.
    * @throws {TypeError} If onClick is not a function.
    * @throws {Error} If position is invalid.
    */
-  addMenuButton(label, { onClick, position = 'left', id, items } = {}) {
+  addMenuButton(label, { onClick, position = 'left', id, items, dropdownHideTimeout = 400 } = {}) {
     if (typeof label !== 'string' || !label.trim())
       throw new TypeError(`Label must be a non-empty string. Received: ${label}`);
 
@@ -637,7 +638,7 @@ class TinyWindowFrameManager {
 
     // Has dropdown
     if (Array.isArray(items) && items.length > 0) {
-      const { dropdown, closeDropdown } = this.#createDropdown(items, position);
+      const { dropdown, closeDropdown } = this.createDropdown(items, position, dropdownHideTimeout);
       btn.classList.add('has-dropdown');
       btn.appendChild(dropdown);
 
@@ -684,28 +685,30 @@ class TinyWindowFrameManager {
    *
    * @param {MenuDropdown[]} items - List of items or submenus.
    * @param {'left'|'right'} direction - Dropdown opening direction.
+   * @param {number} [hideTimeout=400] - Dropdown auto hide timeout.
    * @param {(() => void)|null} [secondCloseDropdown=null] - Second dropdown closer.
    * @returns {{ dropdown: HTMLDivElement; closeDropdown: () => void }}
    */
-  #createDropdown(items, direction = 'right', secondCloseDropdown = null) {
+  createDropdown(items, direction = 'right', hideTimeout = 400, secondCloseDropdown = null) {
     const dropdown = document.createElement('div');
     dropdown.classList.add('menu-dropdown');
+    if (typeof secondCloseDropdown === 'function') dropdown.classList.add('sub-menu-dropdown');
     dropdown.style.flexDirection = 'column';
     dropdown.style.display = 'none';
 
     dropdown.style.position = 'absolute';
     dropdown.style.top = '100%';
 
-    /**
-     * Dropdown Closer
-     * @param {HTMLElement} dd
-     */
-    const closeDropdownGen = (dd) => () => {
-      if (dd) dd.style.display = 'none';
+    /** @type {(() => void)[]} */
+    const closesDropdown = [];
+    const closeDropdown = () => {
+      if (dropdown){ 
+        dropdown.style.display = 'none';
+        dropdown.style.left = '';
+      }
+      for (const callback of closesDropdown) callback();
       if (typeof secondCloseDropdown === 'function') secondCloseDropdown();
     };
-
-    const closeDropdown = closeDropdownGen(dropdown);
 
     // Items list
     items.forEach((item) => {
@@ -717,13 +720,15 @@ class TinyWindowFrameManager {
 
       // More items
       if (Array.isArray(item.items) && item.items.length > 0) {
-        const { dropdown: subDropdown, closeDropdown: closeSubDropdown } = this.#createDropdown(
+        const { dropdown: subDropdown, closeDropdown: closeSubDropdown } = this.createDropdown(
           item.items,
           direction,
+          hideTimeout,
           closeDropdown,
         );
 
         el.classList.add('has-submenu');
+        if (typeof secondCloseDropdown === 'function') el.classList.add('sub-has-submenu');
         el.appendChild(subDropdown);
 
         // Menu event click
@@ -737,11 +742,48 @@ class TinyWindowFrameManager {
           subDropdown.style.top = isVisible ? `${elBounds.top - elBounds.height - 10}px` : '';
         };
 
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isVisible = subDropdown.style.display === 'flex';
-          subDropdown.style.display = isVisible ? 'none' : 'flex';
-          updateDropdown(!isVisible);
+        closesDropdown.push(() => updateDropdown(false));
+
+        /** @type {NodeJS.Timeout|null} */
+        let hideTimeoutFunc = null;
+        const clearHideTimeout = () => {
+          if (hideTimeoutFunc) {
+            clearTimeout(hideTimeoutFunc);
+            hideTimeoutFunc = null;
+          }
+        };
+
+        const hideDropdown = () => {
+          subDropdown.style.display = 'none';
+          updateDropdown(false);
+        };
+
+        el.addEventListener('click', (e) => e.stopPropagation());
+        el.addEventListener('mouseenter', () => {
+          clearHideTimeout();
+          subDropdown.style.display = 'flex';
+          updateDropdown(true);
+        });
+
+        el.addEventListener('mouseleave', (e) => {
+          // Check if mouse leaves both the main item and the dropdown itself
+          const toElement = e.relatedTarget;
+          clearHideTimeout();
+          // @ts-ignore
+          if (!subDropdown.contains(toElement) && toElement !== el) {
+            hideTimeoutFunc = setTimeout(() => hideDropdown(), hideTimeout);
+          }
+        });
+
+        subDropdown.addEventListener('mouseenter', () => clearHideTimeout());
+
+        subDropdown.addEventListener('mouseleave', (e) => {
+          const toElement = e.relatedTarget;
+          clearHideTimeout();
+          // @ts-ignore
+          if (!el.contains(toElement) && !subDropdown.contains(toElement)) {
+            hideTimeoutFunc = setTimeout(() => hideDropdown(), hideTimeout);
+          }
         });
 
         document.addEventListener('click', () => {

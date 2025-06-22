@@ -332,7 +332,6 @@ export const getDefaultWindowFrameStyle = ({
         background: var(--frame-button-hover-background);
       }
 
-      ${getElementName('.has-dropdown::after')},
       ${getElementName('.has-submenu::after')} {
         content: '▸';
         float: right;
@@ -357,8 +356,7 @@ export const getDefaultWindowFrameStyle = ({
       }
 
       /* Active effects */
-      ${getElementName('.frame-buttons > button:active')},
-      ${getElementName('.frame-menu > button:active')} {
+      ${getElementName('.frame-buttons > button:active')} {
         background-color: var(--frame-button-active-background);
       }
 
