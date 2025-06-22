@@ -48,7 +48,7 @@ root.on(RootEvents.Ready, () => {
   tray.setToolTip(root.getTitle());
   tray.setTitle(root.getTitle());
   root.registerTray('main', tray);
-  root.onTrayClick('main', () => console.log('Tray tiny click!'));
+  root.onTrayClick('main', () => root.getWinInstance().toggleVisible(true));
 });
 
 // Ready to first window
@@ -78,6 +78,7 @@ root.on(RootEvents.CreateFirstWindow, () => {
       },
     },
     fileId: initFile,
+    isMain: true,
   });
 
   root.setRequestCache(() => ({
