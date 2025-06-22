@@ -186,7 +186,7 @@ export const getDefaultWindowFrameStyle = ({
         position: relative;
         width: 100%;
         height: var(--frame-height);
-        display: flex;
+        display: block;
         background: var(--frame-background);
         pointer-events: all;
         -webkit-app-region: drag;
@@ -209,16 +209,33 @@ export const getDefaultWindowFrameStyle = ({
 
       ${getElementName('.frame-top-left')} {
         padding-right: var(--frame-padding-x);
+        display: inline-flex;
+        height: 100%;
       }
+
       ${getElementName('.frame-top-right')} {
         padding-left: var(--frame-padding-x);
+        display: inline-flex;
+        height: 100%;
+        position: absolute;
+        right: 0;
+      }
+
+      ${getElementName('.frame-top')} {
+        position: relative;
       }
 
       ${getElementName('.frame-top-center')} {
-        flex: 1;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
         justify-content: center;
         padding: 0 var(--frame-padding-x);
         overflow: hidden;
+        white-space: nowrap;
       }
 
       /* Title */
@@ -306,6 +323,10 @@ export const getDefaultWindowFrameStyle = ({
         padding-left: var(--frame-padding-x);
       }
 
+      ${getElementName('.frame-top-right .frame-menu:last-child')} {
+        padding-right: var(--frame-padding-x);
+      }
+
       /* Buttons Dropdown */
       ${getElementName('.menu-dropdown')} {
         background: var(--frame-background);
@@ -363,11 +384,11 @@ export const getDefaultWindowFrameStyle = ({
       }
 
       /* Border last and first button */
-      ${getElementName('.frame-top-right .frame-buttons > button:last-child')} {
+      ${getElementName('.frame-top-right .frame-buttons > button:last-child', '', `body:not(.${maximizedClass})`)} {
         border-top-right-radius: var(--frame-border-radius);
       }
 
-      ${getElementName('.frame-top-left .frame-buttons:first-child > button:first-child')} {
+      ${getElementName('.frame-top-left .frame-buttons:first-child > button:first-child', '', `body:not(.${maximizedClass})`)} {
         border-top-left-radius: var(--frame-border-radius);
       }
 
