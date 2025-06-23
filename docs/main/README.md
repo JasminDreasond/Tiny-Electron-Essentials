@@ -21,12 +21,12 @@ The modules in this folder are designed to abstract away common Electron operati
 
 | File                          | Description                                      |
 | ----------------------------- | ------------------------------------------------ |
-| [`TinyDb`](./TinyDb.md)                         | 📦 Tiny JSON-based database for simple persistent storage. |
+| [`TinyDb`](./TinyDb.md)                                     | 📦 Tiny JSON-based database for simple persistent storage. |
 | [`TinyElectronNotification`](./TinyElectronNotification.md) | 🔔 Wrapper for Electron's notification API with enhancements. |
-| [`TinyElectronRoot`](./TinyElectronRoot.md)         | 🚀 The main app manager: handles windows, tray, lifecycle, paths, and more. |
-| [`TinyIpcResponder`](./TinyIpcResponder.md)         | 📡 IPC responder that simplifies main/renderer communication. |
-| [`TinyWindowFile`](./TinyWindowFile.md)             | 📁 File path resolver and utilities for windows and app assets. |
-| [`TinyWinInstance`](./TinyWinInstance.md)           | 🪟 Encapsulates a single BrowserWindow instance with extended controls. |
+| [`TinyElectronRoot`](./TinyElectronRoot.md)                 | 🚀 The main app manager: handles windows, tray, lifecycle, paths, and more. |
+| [`TinyIpcResponder`](./TinyIpcResponder.md)                 | 📡 IPC responder that simplifies main/renderer communication. |
+| [`TinyWindowFile`](./TinyWindowFile.md)                     | 📁 File path resolver and utilities for windows and app assets. |
+| [`TinyWinInstance`](./TinyWinInstance.md)                   | 🪟 Encapsulates a single BrowserWindow instance with extended controls. |
 
 ---
 
