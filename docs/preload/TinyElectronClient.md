@@ -233,42 +233,6 @@ electronWindow.setTitle('Hello World!');
 
 ---
 
-## Additional Private Setters (Internal Use) 🔧
-
-> These are internal methods used to update the state properties locally based on IPC events.
-
-* `#setIsFullScreen(value: boolean, useIt: boolean)`
-  Sets the fullscreen status internally.
-
-* `#setIsFocused(value: boolean, useIt: boolean)`
-  Sets the focused status internally.
-
-* `#setShowStatus(value: boolean, useIt: boolean)`
-  Sets whether the app is shown or hidden internally.
-
-* `#setPosition(value: [number, number], useIt: boolean)`
-  Updates the window position internally.
-
-* `#setSize(value: [number, number], useIt: boolean)`
-  Updates the window size internally.
-
-* `#setIsMaximized(value: boolean, useIt: boolean)`
-  Sets maximized status internally.
-
-* `#setIsMaximizable(value: boolean, useIt: boolean)`
-  Sets if the window can be maximized internally.
-
-* `#setIsClosable(value: boolean, useIt: boolean)`
-  Sets if the window can be closed internally.
-
-* `#setIsFullScreenable(value: boolean, useIt: boolean)`
-  Sets if the window can enter fullscreen internally.
-
-* `#setIsFocusable(value: boolean, useIt: boolean)`
-  Sets if the window can be focused internally.
-
----
-
 ## Change Count Tracking 📊
 
 * `getChangeCount(where: string): number`
@@ -299,9 +263,6 @@ electronWindow.setTitle('Hello World!');
 
 * `.off(event: string, listener: Function): void`
   Remove an event listener.
-
-* `#emit(event: string, value: any): void`
-  Internal method to emit events to listeners.
 
 ---
 

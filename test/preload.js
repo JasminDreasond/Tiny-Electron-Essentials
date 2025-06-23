@@ -1,4 +1,6 @@
+const path = require('path');
 const { contextBridge } = require('electron');
+
 const {
   TinyElectronClient,
   TinyDb,
@@ -40,6 +42,7 @@ contextBridge.exposeInMainWorld('api', {
   getUser: () => manager.send('get-user-data', { userId: 123 }, { timeout: 3000 }),
   notiTest: async () => {
     const tinyNoti = await notifications.create({
+      icon: path.join(__dirname, './icons/favicon.png'),
       tag: 'yay',
       title: 'Test Notification',
       body: 'Click, reply, or press an action button!',
