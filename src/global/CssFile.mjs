@@ -1,5 +1,6 @@
-import fs from 'fs';
-import path from 'path';
+import { existsSync } from 'fs';
+import { writeFile } from 'fs/promises';
+import { resolve as resolvePath, join } from 'path';
 
 /**
  * Save CSS content into a .css file with strict validation.
@@ -17,13 +18,13 @@ export async function saveCssFile(directory, filename, cssContent) {
     throw new Error('Invalid filename. Must be a valid name ending with .css');
   if (typeof cssContent !== 'string') throw new Error('CSS content must be a string.');
 
-  const absolutePath = path.resolve(directory);
-  const fullFilePath = path.join(absolutePath, filename);
+  const absolutePath = resolvePath(directory);
+  const fullFilePath = join(absolutePath, filename);
 
-  if (!fs.existsSync(absolutePath)) throw new Error(`Directory does not exist: ${absolutePath}`);
+  if (!existsSync(absolutePath)) throw new Error(`Directory does not exist: ${absolutePath}`);
 
   try {
-    await fs.promises.writeFile(fullFilePath, cssContent, 'utf8');
+    await writeFile(fullFilePath, cssContent, 'utf8');
     console.log(`✔ CSS file saved to: ${fullFilePath}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

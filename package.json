@@ -1,7 +1,7 @@
 {
   "name": "tiny-electron-essentials",
   "description": "A lightweight and modular utility library for Electron apps, offering simplified window management, tray support, IPC channels, and custom frameless window styling.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "test": "electronmon ./test/main.mjs",
     "fix:prettier": "npm run fix:prettier:src && npm run fix:prettier:test && npm run fix:prettier:rollup.config",
@@ -75,10 +75,10 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/tinycolor2": "^1.4.6",
-    "mime-types": "^3.0.1",
     "babel-preset-es2015": "^6.24.1",
     "electron": "^36.3.2",
     "electronmon": "^2.0.3",
+    "mime-types": "^3.0.1",
     "node-polyfill-webpack-plugin": "^4.1.0",
     "prettier": "3.5.3",
     "rollup": "^4.40.0",
@@ -90,6 +90,6 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "tiny-essentials": "^1.11.0"
+    "tiny-essentials": "^1.12.2"
   }
 }

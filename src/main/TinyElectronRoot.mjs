@@ -1,5 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { existsSync, lstatSync, writeFileSync, mkdirSync } from 'node:fs';
+import { resolve as resolvePath, relative, isAbsolute as isAbsolutePath, join } from 'node:path';
+
 import { EventEmitter } from 'events';
 import { app, BrowserWindow, ipcMain, session, powerMonitor, Tray } from 'electron';
 import { release, platform } from 'node:os';
@@ -662,8 +663,8 @@ class TinyElectronRoot {
 
     if (
       typeof iconFolder !== 'string' ||
-      !fs.existsSync(iconFolder) ||
-      !fs.lstatSync(iconFolder).isDirectory()
+      !existsSync(iconFolder) ||
+      !lstatSync(iconFolder).isDirectory()
     )
       throw new Error(`Invalid or missing icon folder: "${iconFolder}".`);
 
@@ -674,16 +675,16 @@ class TinyElectronRoot {
     else if (osValue === 'darwin') extension = '.icns';
 
     // Prevent directory traversal
-    const normalizedFolder = path.resolve(iconFolder);
-    const fullPath = path.resolve(normalizedFolder, filename + extension);
+    const normalizedFolder = resolvePath(iconFolder);
+    const fullPath = resolvePath(normalizedFolder, filename + extension);
 
     // Security: Ensure the fullPath is inside the icon folder
-    const relativePath = path.relative(normalizedFolder, fullPath);
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath))
+    const relativePath = relative(normalizedFolder, fullPath);
+    if (relativePath.startsWith('..') || isAbsolutePath(relativePath))
       throw new Error(`Illegal access attempt: "${filename}" resolves outside the icon folder.`);
 
     // Check if file exists
-    if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile())
+    if (!existsSync(fullPath) || !lstatSync(fullPath).isFile())
       throw new Error(`Icon file not found: "${fullPath}".`);
 
     return fullPath;
@@ -828,7 +829,7 @@ class TinyElectronRoot {
           bounds: win.getBounds(),
           maximized: win.isMaximized(),
         };
-        fs.writeFileSync(fileId, JSON.stringify(winData));
+        writeFileSync(fileId, JSON.stringify(winData));
       }
 
       // Prevent Close
@@ -1070,20 +1071,20 @@ class TinyElectronRoot {
       throw new TypeError(
         'Expected "iconFolder" to be a string. Provide a valid icon folder path.',
       );
-    if (!fs.existsSync(iconFolder) || !fs.lstatSync(iconFolder).isDirectory())
+    if (!existsSync(iconFolder) || !lstatSync(iconFolder).isDirectory())
       throw new Error(`The icon folder path "${iconFolder}" does not exist or is not a directory.`);
 
     if (typeof pathBase !== 'string')
       throw new TypeError(
         'Expected "pathBase" to be a string. Provide a valid application pathBase.',
       );
-    if (!fs.existsSync(pathBase) || !fs.lstatSync(pathBase).isDirectory())
+    if (!existsSync(pathBase) || !lstatSync(pathBase).isDirectory())
       throw new Error(`The pathBase "${pathBase}" does not exist or is not a directory.`);
 
     this.#iconFolder = iconFolder;
     this.#pathBase = pathBase;
 
-    if (!fs.existsSync(this.resolveSystemIconPath(icon)))
+    if (!existsSync(this.resolveSystemIconPath(icon)))
       throw new Error(`The icon "${icon}" does not exist.`);
 
     if (typeof title !== 'string')
@@ -1372,7 +1373,7 @@ class TinyElectronRoot {
 
     return {
       isUnpacked,
-      unPackedFolder: typeof where === 'string' ? path.join(unPackedFolder, where) : unPackedFolder,
+      unPackedFolder: typeof where === 'string' ? join(unPackedFolder, where) : unPackedFolder,
     };
   }
 
@@ -1409,14 +1410,14 @@ class TinyElectronRoot {
     if (isUnpacked) {
       try {
         const result = await session.defaultSession.extensions.loadExtension(
-          path.join(unPackedFolder, `./${extName}`),
+          join(unPackedFolder, `./${extName}`),
           ops,
         );
         return result;
       } catch {
         try {
           const result = await session.defaultSession.extensions.loadExtension(
-            path.join(__dirname, `../${extName}`),
+            join(__dirname, `../${extName}`),
             ops,
           );
           return result;
@@ -1427,7 +1428,7 @@ class TinyElectronRoot {
     } else {
       try {
         const result = await session.defaultSession.extensions.loadExtension(
-          path.join(__dirname, `../${extName}`),
+          join(__dirname, `../${extName}`),
           ops,
         );
         return result;
@@ -1451,8 +1452,8 @@ class TinyElectronRoot {
 
     if (typeof this.#appDataStarted[name] === 'string')
       throw new Error(`App data for path "${name}" has already been initialized.`);
-    const folder = path.join(app.getPath(name), this.getAppDataName());
-    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+    const folder = join(app.getPath(name), this.getAppDataName());
+    if (!existsSync(folder)) mkdirSync(folder);
     this.#appDataStarted[name] = folder;
     return folder;
   }
@@ -1493,8 +1494,8 @@ class TinyElectronRoot {
 
     if (typeof this.#appDataStarted[id] === 'string')
       throw new Error(`App data subdir "${subdir}" under "${name}" has already been created.`);
-    const folder = path.join(root, subdir);
-    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+    const folder = join(root, subdir);
+    if (!existsSync(folder)) mkdirSync(folder);
     this.#appDataStarted[id] = folder;
     return folder;
   }
@@ -1684,7 +1685,7 @@ class TinyElectronRoot {
       /** @type {Electron.LoadFileOptions} */
       // @ts-ignore
       const options = ops;
-      const finalPath = path.join(this.#pathBase, ...pageData);
+      const finalPath = join(this.#pathBase, ...pageData);
       win.loadFile(finalPath, options);
     }
   }

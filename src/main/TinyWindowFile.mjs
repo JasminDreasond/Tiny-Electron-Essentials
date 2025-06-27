@@ -1,4 +1,4 @@
-import fs from 'fs';
+import { readFileSync } from 'fs';
 import { isJsonObject } from 'tiny-essentials';
 
 /**
@@ -54,7 +54,7 @@ class TinyWindowFile {
     /** @type {InitConfig} */
     let data = {};
     try {
-      const raw = JSON.parse(fs.readFileSync(initFile, 'utf8'));
+      const raw = JSON.parse(readFileSync(initFile, 'utf8'));
       if (isJsonObject(raw)) data = raw;
     } catch {
       data = {};

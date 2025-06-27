@@ -1,6 +1,7 @@
-import fs from 'node:fs';
+import { existsSync, lstatSync, writeFileSync } from 'node:fs';
 import { readdir, unlink } from 'node:fs/promises';
-import path from 'node:path';
+import { join } from 'node:path';
+
 import { BrowserWindow, Notification } from 'electron';
 import { isJsonObject } from 'tiny-essentials';
 
@@ -55,8 +56,8 @@ class TinyElectronNotification {
           iconCache.isBase64 &&
           typeof iconCache.iconFile === 'string'
         ) {
-          const filePath = path.join(this.#folderPath, `./${iconCache.iconFile}`);
-          if (fs.existsSync(filePath)) await unlink(filePath);
+          const filePath = join(this.#folderPath, `./${iconCache.iconFile}`);
+          if (existsSync(filePath)) await unlink(filePath);
         }
       } catch (err) {
         console.error(err);
@@ -143,7 +144,7 @@ class TinyElectronNotification {
    */
   async deleteAllFilesInDir() {
     const files = await readdir(this.#folderPath);
-    const deleteFilePromises = files.map((file) => unlink(path.join(this.#folderPath, file)));
+    const deleteFilePromises = files.map((file) => unlink(join(this.#folderPath, file)));
     await Promise.all(deleteFilePromises);
   }
 
@@ -157,7 +158,7 @@ class TinyElectronNotification {
     if (!(ipcResponder instanceof TinyIpcResponder))
       throw new Error('Invalid ipcResponder instance.');
     if (typeof folderPath !== 'string') throw new Error('folderPath must be a string.');
-    if (!fs.existsSync(folderPath) || !fs.lstatSync(folderPath).isDirectory())
+    if (!existsSync(folderPath) || !lstatSync(folderPath).isDirectory())
       throw new Error(`The folderPath "${folderPath}" does not exist or is not a directory.`);
 
     this.#ipcResponder = ipcResponder;
@@ -185,10 +186,10 @@ class TinyElectronNotification {
             const ext = base64File[0].split('data:image/')[1];
 
             const filename = `${tag.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`;
-            const tempFile = path.join(this.#folderPath, `./${filename}`);
+            const tempFile = join(this.#folderPath, `./${filename}`);
 
             const binaryString = atob(base64File[1]);
-            fs.writeFileSync(tempFile, binaryString, 'binary');
+            writeFileSync(tempFile, binaryString, 'binary');
 
             iconCache.iconFile = filename;
             newData.icon = tempFile;

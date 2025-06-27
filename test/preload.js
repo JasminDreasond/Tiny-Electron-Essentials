@@ -42,16 +42,16 @@ notifications.installWinScript();
 
 // Test
 const tinyNotiActions = (tinyNoti) => {
-    tinyNoti.on('show', () => console.log('yay! Tiny notification show!'));
-    tinyNoti.on('click', () => console.log('yay! Tiny notification clicked!'));
-    tinyNoti.on('close', () => console.log('yay! Tiny notification closed!'));
-    tinyNoti.on('failed', (errMsg) => console.log('yay! Tiny notification error!', errMsg));
-    tinyNoti.on('reply', (reply) => console.log('yay! Tiny notification reply!', reply));
-    tinyNoti.on('click', (index) => console.log('yay! Tiny notification action!', index));
+  tinyNoti.on('show', () => console.log('yay! Tiny notification show!'));
+  tinyNoti.on('click', () => console.log('yay! Tiny notification clicked!'));
+  tinyNoti.on('close', () => console.log('yay! Tiny notification closed!'));
+  tinyNoti.on('failed', (errMsg) => console.log('yay! Tiny notification error!', errMsg));
+  tinyNoti.on('reply', (reply) => console.log('yay! Tiny notification reply!', reply));
+  tinyNoti.on('click', (index) => console.log('yay! Tiny notification action!', index));
 
-    tinyNoti.on('all', (arg) => console.log(arg));
+  tinyNoti.on('all', (arg) => console.log(arg));
 
-    tinyNoti.show();
+  tinyNoti.show();
 };
 
 contextBridge.exposeInMainWorld('api', {
@@ -80,7 +80,7 @@ contextBridge.exposeInMainWorld('api', {
 
     const tinyNoti = await notifications.create({
       icon: `data:${mimeType};base64,${base64}`,
-      tag: 'yay',
+      tag: 'yay2',
       title: 'Test Notification 2',
       body: 'Click, reply, or press an action button!',
       actions: [
