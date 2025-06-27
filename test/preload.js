@@ -1,4 +1,7 @@
+const fs = require('fs');
 const path = require('path');
+const mime = require('mime-types');
+
 const { contextBridge } = require('electron');
 
 const {
@@ -38,6 +41,19 @@ const notifications = new TinyElectronNotification({ ipcRequest: manager });
 notifications.installWinScript();
 
 // Test
+const tinyNotiActions = (tinyNoti) => {
+    tinyNoti.on('show', () => console.log('yay! Tiny notification show!'));
+    tinyNoti.on('click', () => console.log('yay! Tiny notification clicked!'));
+    tinyNoti.on('close', () => console.log('yay! Tiny notification closed!'));
+    tinyNoti.on('failed', (errMsg) => console.log('yay! Tiny notification error!', errMsg));
+    tinyNoti.on('reply', (reply) => console.log('yay! Tiny notification reply!', reply));
+    tinyNoti.on('click', (index) => console.log('yay! Tiny notification action!', index));
+
+    tinyNoti.on('all', (arg) => console.log(arg));
+
+    tinyNoti.show();
+};
+
 contextBridge.exposeInMainWorld('api', {
   getUser: () => manager.send('get-user-data', { userId: 123 }, { timeout: 3000 }),
   notiTest: async () => {
@@ -54,17 +70,28 @@ contextBridge.exposeInMainWorld('api', {
       hasReply: true,
       replyPlaceholder: 'Type your reply here...',
     });
+    tinyNotiActions(tinyNoti);
+  },
+  notiTest2: async () => {
+    const filePath = path.join(__dirname, './icons/tiny-pixel-pudding.png');
+    const base64 = fs.readFileSync(filePath).toString('base64');
+    const mimeType = mime.lookup(filePath);
+    console.log(mimeType, base64);
 
-    tinyNoti.on('show', () => console.log('yay! Tiny notification show!'));
-    tinyNoti.on('click', () => console.log('yay! Tiny notification clicked!'));
-    tinyNoti.on('close', () => console.log('yay! Tiny notification closed!'));
-    tinyNoti.on('failed', (errMsg) => console.log('yay! Tiny notification error!', errMsg));
-    tinyNoti.on('reply', (reply) => console.log('yay! Tiny notification reply!', reply));
-    tinyNoti.on('click', (index) => console.log('yay! Tiny notification action!', index));
-
-    tinyNoti.on('all', (arg) => console.log(arg));
-
-    tinyNoti.show();
+    const tinyNoti = await notifications.create({
+      icon: `data:${mimeType};base64,${base64}`,
+      tag: 'yay',
+      title: 'Test Notification 2',
+      body: 'Click, reply, or press an action button!',
+      actions: [
+        { type: 'button', text: 'Action 1' },
+        { type: 'button', text: 'Action 2' },
+      ],
+      closeButtonText: 'Close it',
+      hasReply: true,
+      replyPlaceholder: 'Type your reply here...',
+    });
+    tinyNotiActions(tinyNoti);
   },
 });
 
