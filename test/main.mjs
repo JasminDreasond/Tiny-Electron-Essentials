@@ -48,7 +48,7 @@ root.on(RootEvents.Ready, () => {
   tray.setToolTip(root.getTitle());
   tray.setTitle(root.getTitle());
   root.registerTray('main', tray);
-  root.onTrayClick('main', () => root.getWinInstance().toggleVisible(true));
+  root.onTrayClick('main', () => root.getWinInstance().toggleVisible());
 });
 
 // Ready to first window
