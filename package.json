@@ -40,7 +40,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JasminDreasond/Tiny-Electron-Essentials.git"
+    "url": "git+https://github.com/Tiny-Essentials/Tiny-Electron-Essentials.git"
   },
   "keywords": [
     "electron",
@@ -62,9 +62,9 @@
   "author": "Yasmin Seidel (Jasmin Dreasond)",
   "license": "LGPL-3.0-only",
   "bugs": {
-    "url": "https://github.com/JasminDreasond/Tiny-Electron-Essentials/issues"
+    "url": "https://github.com/Tiny-Essentials/Tiny-Electron-Essentials/issues"
   },
-  "homepage": "https://github.com/JasminDreasond/Tiny-Electron-Essentials#readme",
+  "homepage": "https://github.com/Tiny-Essentials/Tiny-Electron-Essentials#readme",
   "devDependencies": {
     "@babel/cli": "^7.27.0",
     "@babel/core": "^7.26.10",
